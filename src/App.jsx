@@ -167,15 +167,9 @@ export default function App() {
       <section className="hero">
         <div className="hero__main">
           <p className="hero__eyebrow">poke champ</p>
-          <h1>育成フローを、迷わないUIに切り替える。</h1>
           <p className="hero__copy">
             ポケモン育成の入口を3つに整理し、まずは実数値計算にすぐ入れるホーム画面を作りました。
           </p>
-        </div>
-        <div className="hero__panel">
-          <span className="hero__panel-label">今回の実装範囲</span>
-          <strong>ホーム画面 + 育成開始 + 育成済み一覧</strong>
-          <p>ポケモン候補補完、持ち物候補補完、特性表示、性格補正表、実数値計算、保存一覧に対応。</p>
         </div>
       </section>
 

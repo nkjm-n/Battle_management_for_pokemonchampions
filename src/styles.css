@@ -62,7 +62,7 @@ button {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
+  grid-template-columns: 1fr;
   gap: 24px;
   align-items: stretch;
   margin-bottom: 26px;

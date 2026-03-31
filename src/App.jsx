@@ -1,4 +1,5 @@
 import { startTransition, useEffect, useState } from "react";
+import BattleTeamDetailView from "./components/BattleTeamDetailView";
 import BattleTeamsView from "./components/BattleTeamsView";
 import TrainingStartView from "./components/TrainingStartView";
 import TrainedPokemonView from "./components/TrainedPokemonView";
@@ -48,6 +49,7 @@ export default function App() {
   const [battleTeams, setBattleTeams] = useState([]);
   const [isStorageReady, setIsStorageReady] = useState(false);
   const [editingPokemonId, setEditingPokemonId] = useState(null);
+  const [viewingBattleTeamId, setViewingBattleTeamId] = useState(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -107,6 +109,11 @@ export default function App() {
   function openTrainingForEdit(entryId) {
     setEditingPokemonId(entryId);
     moveTo("training");
+  }
+
+  function openBattleTeamDetail(teamId) {
+    setViewingBattleTeamId(teamId);
+    moveTo("teamDetail");
   }
 
   function handleSavePokemon({ battleTeamId, newBattleTeamName, ...entry }) {
@@ -214,6 +221,10 @@ export default function App() {
     editingPokemonId == null
       ? null
       : savedPokemon.find((entry) => entry.id === editingPokemonId) ?? null;
+  const viewingBattleTeam =
+    viewingBattleTeamId == null
+      ? null
+      : battleTeams.find((team) => team.id === viewingBattleTeamId) ?? null;
 
   if (!isStorageReady) {
     return (
@@ -256,6 +267,17 @@ export default function App() {
         battleTeams={battleTeams}
         savedPokemon={savedPokemon}
         onBack={() => moveTo("home")}
+        onSelectTeam={openBattleTeamDetail}
+      />
+    );
+  }
+
+  if (activeView === "teamDetail") {
+    return (
+      <BattleTeamDetailView
+        team={viewingBattleTeam}
+        savedPokemon={savedPokemon}
+        onBack={() => moveTo("teams")}
       />
     );
   }

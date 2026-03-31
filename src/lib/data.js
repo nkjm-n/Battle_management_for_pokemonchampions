@@ -1,6 +1,7 @@
 import itemMarkdown from "../../item.md?raw";
 import moveMarkdown from "../../move.md?raw";
 import pokemonMarkdown from "../../pokemon.md?raw";
+import pokemonTypes from "./pokemonTypes.json";
 
 function parseMarkdownRow(row) {
   return row
@@ -59,6 +60,7 @@ function parsePokemonMarkdown(markdown) {
 
     return {
       name,
+      types: pokemonTypes[name] ?? [],
       stats: {
         hp: Number(hp),
         attack: Number(attack),
@@ -116,3 +118,8 @@ function parseMoveMarkdown(markdown) {
 export const pokemonList = parsePokemonMarkdown(pokemonMarkdown);
 export const itemList = parseItemMarkdown(itemMarkdown);
 export const moveList = parseMoveMarkdown(moveMarkdown);
+export const pokemonByName = new Map(pokemonList.map((pokemon) => [pokemon.name, pokemon]));
+
+export function getPokemonRecordByName(name) {
+  return pokemonByName.get(name) ?? null;
+}

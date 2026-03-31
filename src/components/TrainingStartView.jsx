@@ -889,8 +889,7 @@ export default function TrainingStartView({
       </header>
 
       <section className="training-layout">
-        <div className="training-column">
-        <div className="panel panel--strong training-step training-panel-main training-step--primary">
+        <div className="panel panel--strong training-step training-panel-main training-layout__primary">
           <div className="field-grid field-grid--stack">
             <AutocompleteInput
               label="名前"
@@ -1021,18 +1020,7 @@ export default function TrainingStartView({
           </label>
 
         </div>
-
-          <DamageCalculatorPanel
-            mode="deal"
-            title="与ダメージ計算"
-            sourcePokemon={selectedPokemon}
-            sourceActualStats={configuredActualStats}
-            sourceMoves={selectedMoves}
-          />
-        </div>
-
-        <div className="training-column">
-        <div className="panel panel--soft training-step training-panel-main training-step--merged">
+        <div className="panel panel--soft training-step training-panel-main training-step--merged training-layout__merged">
           <div className="move-grid">
             {moveQueries.map((moveQuery, index) => {
               const selectedMove = selectedMoves[index];
@@ -1202,13 +1190,22 @@ export default function TrainingStartView({
           </div>
         </div>
 
-          <DamageCalculatorPanel
-            mode="take"
-            title="被ダメージ計算"
-            sourcePokemon={selectedPokemon}
-            sourceActualStats={configuredActualStats}
-          />
-        </div>
+        <DamageCalculatorPanel
+          className="training-layout__deal"
+          mode="deal"
+          title="与ダメージ計算"
+          sourcePokemon={selectedPokemon}
+          sourceActualStats={configuredActualStats}
+          sourceMoves={selectedMoves}
+        />
+
+        <DamageCalculatorPanel
+          className="training-layout__take"
+          mode="take"
+          title="被ダメージ計算"
+          sourcePokemon={selectedPokemon}
+          sourceActualStats={configuredActualStats}
+        />
       </section>
 
       <BattleTeamSelectorModal

@@ -57,7 +57,7 @@ button {
 .view-shell--training {
   min-height: 100vh;
   padding: 14px 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hero {
@@ -195,25 +195,47 @@ button {
 
 .training-layout {
   grid-template-columns: minmax(320px, 0.92fr) minmax(620px, 1.78fr);
+  grid-template-areas:
+    "primary merged"
+    "deal take";
   align-items: stretch;
-  height: calc(100vh - 78px);
   gap: 14px;
 }
 
-.training-column {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 14px;
-  min-height: 0;
+.training-layout > * {
+  min-width: 0;
+}
+
+.training-layout__primary,
+.training-layout__merged,
+.training-layout__deal,
+.training-layout__take {
+  height: 100%;
+}
+
+.training-layout__primary {
+  grid-area: primary;
+}
+
+.training-layout__merged {
+  grid-area: merged;
+}
+
+.training-layout__deal {
+  grid-area: deal;
+}
+
+.training-layout__take {
+  grid-area: take;
 }
 
 .training-step {
-  height: 100%;
-  overflow: auto;
+  height: auto;
+  overflow: visible;
 }
 
 .training-panel-main {
-  min-height: 0;
+  min-height: 100%;
 }
 
 .training-step--merged {
@@ -223,8 +245,8 @@ button {
 .damage-panel {
   display: grid;
   gap: 12px;
-  max-height: 360px;
-  overflow: auto;
+  align-content: start;
+  overflow: visible;
 }
 
 .damage-panel__header {
@@ -248,7 +270,7 @@ button {
 
 .damage-panel__config-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.72fr);
   gap: 10px;
 }
 
@@ -331,10 +353,47 @@ button {
   font-weight: 700;
 }
 
+.damage-stat-summary__label--up,
+.damage-stat-summary__tile--up strong {
+  color: #cf3a24;
+}
+
+.damage-stat-summary__label--down,
+.damage-stat-summary__tile--down strong {
+  color: #2166c2;
+}
+
+.damage-stat-summary__label--neutral,
+.damage-stat-summary__tile--neutral strong {
+  color: #202633;
+}
+
 .damage-stat-summary__tile strong {
   font-family: "M PLUS Rounded 1c", "Zen Kaku Gothic New", sans-serif;
   font-size: 1.08rem;
   line-height: 1;
+}
+
+.damage-nature-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.damage-nature-summary__name {
+  color: #202633;
+}
+
+.damage-nature-summary__up {
+  color: #cf3a24;
+}
+
+.damage-nature-summary__down {
+  color: #2166c2;
 }
 
 .damage-result {
@@ -373,22 +432,23 @@ button {
   height: 18px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(29, 36, 48, 0.1);
+  background: linear-gradient(90deg, rgba(98, 193, 110, 0.82), rgba(79, 171, 101, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(29, 36, 48, 0.08);
 }
 
 .damage-bar__max,
 .damage-bar__min {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: 0 0 0 auto;
   border-radius: inherit;
 }
 
 .damage-bar__max {
-  background: linear-gradient(90deg, rgba(255, 173, 72, 0.9), rgba(235, 92, 63, 0.9));
+  background: linear-gradient(270deg, rgba(255, 173, 72, 0.9), rgba(235, 92, 63, 0.9));
 }
 
 .damage-bar__min {
-  background: linear-gradient(90deg, rgba(231, 104, 58, 0.96), rgba(205, 58, 36, 0.96));
+  background: linear-gradient(270deg, rgba(231, 104, 58, 0.96), rgba(205, 58, 36, 0.96));
 }
 
 .damage-bar--ko {
@@ -1985,7 +2045,6 @@ button {
 @media (max-width: 980px) {
   .hero,
   .training-layout,
-  .training-column,
   .field-grid,
   .move-grid,
   .sp-grid,
@@ -2057,21 +2116,17 @@ button {
     overflow: visible;
   }
 
-  .training-column {
-    grid-template-rows: auto;
-  }
-
   .training-layout {
-    height: auto;
+    grid-template-areas:
+      "primary"
+      "merged"
+      "deal"
+      "take";
   }
 
   .merged-stat-card__compact {
     grid-template-columns: 44px 52px minmax(0, 1fr) 56px 46px;
     gap: 7px;
-  }
-
-  .damage-panel {
-    max-height: none;
   }
 
   .damage-panel__config-grid,

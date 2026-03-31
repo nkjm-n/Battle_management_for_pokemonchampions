@@ -7,7 +7,7 @@ import {
   getDefenseStatKeyForMove,
 } from "../lib/pokemonDamage";
 import { getMoveTypeClassName } from "../lib/moveTypeClass";
-import { natures } from "../lib/natures";
+import { natureMap, natures } from "../lib/natures";
 import AutocompleteInput from "./AutocompleteInput";
 
 const TOTAL_SP_LIMIT = 66;
@@ -22,6 +22,14 @@ const STAT_LABELS = {
   defense: "防御",
   specialAttack: "特攻",
   specialDefense: "特防",
+};
+
+const STAT_SHORT_LABELS = {
+  attack: "A",
+  defense: "B",
+  specialAttack: "C",
+  specialDefense: "D",
+  speed: "S",
 };
 
 function normalizeKana(value) {
@@ -114,6 +122,31 @@ function formatPercent(value) {
   return `${value.toFixed(1)}%`;
 }
 
+function getNatureTone(natureName, statKey) {
+  const nature = natureMap[natureName];
+  if (!nature?.up || !nature?.down) {
+    return "neutral";
+  }
+
+  if (nature.up === statKey) {
+    return "up";
+  }
+
+  if (nature.down === statKey) {
+    return "down";
+  }
+
+  return "neutral";
+}
+
+function formatNatureOptionLabel(nature) {
+  if (!nature.up || !nature.down) {
+    return `${nature.name} 補正なし`;
+  }
+
+  return `${nature.name} ${STAT_SHORT_LABELS[nature.up]}↑${STAT_SHORT_LABELS[nature.down]}↓`;
+}
+
 function DamageResult({ result, sourceLabel }) {
   if (!result) {
     return <div className="damage-result damage-result--empty">必要な情報を入力するとダメージを表示します。</div>;
@@ -152,16 +185,30 @@ function DamageResult({ result, sourceLabel }) {
 }
 
 function NatureSelect({ value, onChange }) {
+  const selectedNature = natureMap[value];
+
   return (
     <label className="field">
       <span className="field__label">性格</span>
       <select className="field__input field__select" value={value} onChange={(event) => onChange(event.target.value)}>
         {natures.map((nature) => (
           <option key={nature.name} value={nature.name}>
-            {nature.name}
+            {formatNatureOptionLabel(nature)}
           </option>
         ))}
       </select>
+      {selectedNature?.up && selectedNature?.down ? (
+        <span className="damage-nature-summary">
+          <span className="damage-nature-summary__name">{selectedNature.name}</span>
+          <span className="damage-nature-summary__up">{STAT_SHORT_LABELS[selectedNature.up]}↑</span>
+          <span className="damage-nature-summary__down">{STAT_SHORT_LABELS[selectedNature.down]}↓</span>
+        </span>
+      ) : (
+        <span className="damage-nature-summary">
+          <span className="damage-nature-summary__name">{selectedNature?.name ?? DEFAULT_NATURE}</span>
+          <span>補正なし</span>
+        </span>
+      )}
     </label>
   );
 }
@@ -188,20 +235,27 @@ function StatSpInputs({ statKeys, values, inputs, onChange }) {
   );
 }
 
-function StatSummary({ stats, statKeys }) {
+function StatSummary({ stats, statKeys, natureName }) {
   return (
     <div className="damage-stat-summary">
-      {statKeys.map((statKey) => (
-        <div key={statKey} className="damage-stat-summary__tile">
-          <span>{STAT_LABELS[statKey]}</span>
-          <strong>{stats?.[statKey] ?? "—"}</strong>
-        </div>
-      ))}
+      {statKeys.map((statKey) => {
+        const tone = getNatureTone(natureName, statKey);
+
+        return (
+          <div key={statKey} className={`damage-stat-summary__tile damage-stat-summary__tile--${tone}`}>
+            <span className={`damage-stat-summary__label damage-stat-summary__label--${tone}`}>
+              {STAT_LABELS[statKey]}
+            </span>
+            <strong>{stats?.[statKey] ?? "—"}</strong>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export default function DamageCalculatorPanel({
+  className = "",
   mode,
   title,
   sourcePokemon,
@@ -287,7 +341,7 @@ export default function DamageCalculatorPanel({
   const sourceLabel = isDealMode ? "こちら" : "相手";
 
   return (
-    <section className="panel panel--strong damage-panel">
+    <section className={`panel panel--strong damage-panel ${className}`.trim()}>
       <div className="damage-panel__header">
         <h3>{title}</h3>
         <span>Lv.50</span>
@@ -343,7 +397,7 @@ export default function DamageCalculatorPanel({
 
       <div className="damage-panel__footer">
         <span className="damage-panel__remaining-sp">残りSP {remainingSp}</span>
-        <StatSummary stats={configuredStats} statKeys={spKeys} />
+        <StatSummary stats={configuredStats} statKeys={spKeys} natureName={natureName} />
       </div>
 
       {sourcePokemon && sourceActualStats && selectedPokemon ? (

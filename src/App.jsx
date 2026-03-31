@@ -19,6 +19,75 @@ import {
   saveSavedPokemonToStorage,
 } from "./lib/savedPokemonStorage";
 
+const defaultRouteState = {
+  view: "home",
+  editingPokemonId: null,
+  viewingBattleTeamId: null,
+};
+
+function parseHashRoute(hash) {
+  const normalizedHash = String(hash ?? "").replace(/^#/, "");
+  const segments = normalizedHash.split("/").filter(Boolean);
+
+  if (segments.length === 0) {
+    return { ...defaultRouteState };
+  }
+
+  if (segments[0] === "training") {
+    return {
+      view: "training",
+      editingPokemonId: segments[1] ? decodeURIComponent(segments[1]) : null,
+      viewingBattleTeamId: null,
+    };
+  }
+
+  if (segments[0] === "trained") {
+    return {
+      view: "trained",
+      editingPokemonId: null,
+      viewingBattleTeamId: null,
+    };
+  }
+
+  if (segments[0] === "teams" && segments[1]) {
+    return {
+      view: "teamDetail",
+      editingPokemonId: null,
+      viewingBattleTeamId: decodeURIComponent(segments[1]),
+    };
+  }
+
+  if (segments[0] === "teams") {
+    return {
+      view: "teams",
+      editingPokemonId: null,
+      viewingBattleTeamId: null,
+    };
+  }
+
+  return { ...defaultRouteState };
+}
+
+function buildHashRoute({ view, editingPokemonId, viewingBattleTeamId }) {
+  if (view === "training") {
+    return editingPokemonId ? `#/training/${encodeURIComponent(editingPokemonId)}` : "#/training";
+  }
+
+  if (view === "trained") {
+    return "#/trained";
+  }
+
+  if (view === "teamDetail" && viewingBattleTeamId) {
+    return `#/teams/${encodeURIComponent(viewingBattleTeamId)}`;
+  }
+
+  if (view === "teams") {
+    return "#/teams";
+  }
+
+  return "#/";
+}
+
 const homeCards = [
   {
     id: "training",
@@ -44,12 +113,41 @@ const homeCards = [
 ];
 
 export default function App() {
-  const [activeView, setActiveView] = useState("home");
+  const initialRoute =
+    typeof window === "undefined" ? defaultRouteState : parseHashRoute(window.location.hash);
+  const [activeView, setActiveView] = useState(initialRoute.view);
   const [savedPokemon, setSavedPokemon] = useState([]);
   const [battleTeams, setBattleTeams] = useState([]);
   const [isStorageReady, setIsStorageReady] = useState(false);
-  const [editingPokemonId, setEditingPokemonId] = useState(null);
-  const [viewingBattleTeamId, setViewingBattleTeamId] = useState(null);
+  const [editingPokemonId, setEditingPokemonId] = useState(initialRoute.editingPokemonId);
+  const [viewingBattleTeamId, setViewingBattleTeamId] = useState(initialRoute.viewingBattleTeamId);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    function applyRouteFromLocation() {
+      const nextRoute = parseHashRoute(window.location.hash);
+
+      startTransition(() => {
+        setActiveView(nextRoute.view);
+        setEditingPokemonId(nextRoute.editingPokemonId);
+        setViewingBattleTeamId(nextRoute.viewingBattleTeamId);
+      });
+    }
+
+    if (!window.location.hash) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#/`);
+    }
+
+    applyRouteFromLocation();
+    window.addEventListener("hashchange", applyRouteFromLocation);
+
+    return () => {
+      window.removeEventListener("hashchange", applyRouteFromLocation);
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -95,25 +193,48 @@ export default function App() {
     void saveBattleTeamsToStorage(battleTeams);
   }, [battleTeams, isStorageReady]);
 
+  function navigateTo(nextRoute) {
+    const normalizedRoute = {
+      ...defaultRouteState,
+      ...nextRoute,
+    };
+
+    if (typeof window === "undefined") {
+      startTransition(() => {
+        setActiveView(normalizedRoute.view);
+        setEditingPokemonId(normalizedRoute.editingPokemonId);
+        setViewingBattleTeamId(normalizedRoute.viewingBattleTeamId);
+      });
+      return;
+    }
+
+    const nextHash = buildHashRoute(normalizedRoute);
+    if (window.location.hash === nextHash) {
+      startTransition(() => {
+        setActiveView(normalizedRoute.view);
+        setEditingPokemonId(normalizedRoute.editingPokemonId);
+        setViewingBattleTeamId(normalizedRoute.viewingBattleTeamId);
+      });
+      return;
+    }
+
+    window.location.hash = nextHash.slice(1);
+  }
+
   function moveTo(view) {
-    startTransition(() => {
-      setActiveView(view);
-    });
+    navigateTo({ view });
   }
 
   function openTrainingForCreate() {
-    setEditingPokemonId(null);
-    moveTo("training");
+    navigateTo({ view: "training" });
   }
 
   function openTrainingForEdit(entryId) {
-    setEditingPokemonId(entryId);
-    moveTo("training");
+    navigateTo({ view: "training", editingPokemonId: entryId });
   }
 
   function openBattleTeamDetail(teamId) {
-    setViewingBattleTeamId(teamId);
-    moveTo("teamDetail");
+    navigateTo({ view: "teamDetail", viewingBattleTeamId: teamId });
   }
 
   function handleDeleteBattleTeam(teamId) {
@@ -131,8 +252,7 @@ export default function App() {
     );
 
     if (viewingBattleTeamId === teamId) {
-      setViewingBattleTeamId(null);
-      moveTo("teams");
+      navigateTo({ view: "teams" });
     }
   }
 

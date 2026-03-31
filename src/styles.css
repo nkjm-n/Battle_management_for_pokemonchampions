@@ -271,6 +271,13 @@ button {
   gap: 10px;
 }
 
+.damage-side-grid,
+.damage-adjustment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .damage-move-button {
   display: grid;
   gap: 6px;
@@ -310,6 +317,40 @@ button {
 
 .damage-sp-grid__field .field__helper {
   text-align: right;
+}
+
+.damage-readonly-field {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  border: 1px solid rgba(29, 36, 48, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 12px 14px;
+}
+
+.damage-readonly-field strong {
+  font-family: "M PLUS Rounded 1c", "Zen Kaku Gothic New", sans-serif;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.damage-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  border: 1px solid rgba(29, 36, 48, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.damage-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 .damage-panel__footer {
@@ -2114,6 +2155,8 @@ button {
   }
 
   .damage-panel__config-grid,
+  .damage-side-grid,
+  .damage-adjustment-grid,
   .damage-panel__move-grid,
   .damage-sp-grid,
   .damage-stat-summary {

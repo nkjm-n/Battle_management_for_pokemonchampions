@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { moveList, pokemonList } from "../lib/data";
+import { itemList, moveList, pokemonList } from "../lib/data";
 import {
   buildActualStats,
   calculateDamageRange,
@@ -15,6 +15,8 @@ const MAX_SP_PER_STAT = 32;
 const DEAL_SP_KEYS = ["hp", "defense", "specialDefense"];
 const TAKE_SP_KEYS = ["attack", "specialAttack"];
 const DEFAULT_NATURE = "まじめ";
+const FIELD_OPTIONS = ["なし", "エレキフィールド", "グラスフィールド", "サイコフィールド", "ミストフィールド"];
+const STAGE_OPTIONS = Array.from({ length: 13 }, (_, index) => index - 6);
 
 const STAT_LABELS = {
   hp: "HP",
@@ -147,6 +149,19 @@ function formatNatureOptionLabel(nature) {
   return `${nature.name} ${STAT_SHORT_LABELS[nature.up]}↑${STAT_SHORT_LABELS[nature.down]}↓`;
 }
 
+function formatStageOptionLabel(stage) {
+  return stage > 0 ? `+${stage}` : String(stage);
+}
+
+function ReadOnlyModifierField({ label, value }) {
+  return (
+    <div className="damage-readonly-field">
+      <span className="field__label">{label}</span>
+      <strong>{value || "なし"}</strong>
+    </div>
+  );
+}
+
 function DamageResult({ result, sourceLabel }) {
   if (!result) {
     return <div className="damage-result damage-result--empty">必要な情報を入力するとダメージを表示します。</div>;
@@ -176,9 +191,16 @@ function DamageResult({ result, sourceLabel }) {
       </div>
 
       <div className="damage-result__meta">
-        <span>{sourceLabel}: {attackLabel} {result.attackValue}</span>
-        <span>防御側: {defenseLabel} {result.defenseValue} / HP {result.defenderHp}</span>
-        <span>タイプ一致 x{result.stabMultiplier.toFixed(1)} / 相性 x{result.typeEffectiveness.toFixed(2)}</span>
+        <span>
+          {sourceLabel}: {attackLabel} {result.attackValue}
+        </span>
+        <span>
+          防御側: {defenseLabel} {result.defenseValue} / HP {result.defenderHp}
+        </span>
+        <span>
+          タイプ一致 x{result.stabMultiplier.toFixed(1)} / 相性 x{result.typeEffectiveness.toFixed(2)}
+        </span>
+        {result.modifierNotes?.length > 0 ? <span>補正: {result.modifierNotes.join(" / ")}</span> : null}
       </div>
     </div>
   );
@@ -261,22 +283,40 @@ export default function DamageCalculatorPanel({
   sourcePokemon,
   sourceActualStats,
   sourceMoves = [],
+  sourceAbilityName = "",
+  sourceItemName = "",
 }) {
   const isDealMode = mode === "deal";
   const spKeys = isDealMode ? DEAL_SP_KEYS : TAKE_SP_KEYS;
+  const targetLabel = isDealMode ? "仮想敵" : "相手";
   const [pokemonQuery, setPokemonQuery] = useState("");
   const [natureName, setNatureName] = useState(DEFAULT_NATURE);
   const [moveQuery, setMoveQuery] = useState("");
   const [selectedSourceMoveName, setSelectedSourceMoveName] = useState("");
+  const [targetAbilityName, setTargetAbilityName] = useState("");
+  const [targetItemQuery, setTargetItemQuery] = useState("");
+  const [attackerStage, setAttackerStage] = useState(0);
+  const [defenderStage, setDefenderStage] = useState(0);
+  const [fieldName, setFieldName] = useState("なし");
+  const [isCritical, setIsCritical] = useState(false);
+  const [isSpread, setIsSpread] = useState(false);
+  const [attackerGrounded, setAttackerGrounded] = useState(true);
+  const [defenderGrounded, setDefenderGrounded] = useState(true);
   const [spValues, setSpValues] = useState(() => createInitialSpValues(spKeys));
   const [spInputs, setSpInputs] = useState(() => createSpInputState(createInitialSpValues(spKeys), spKeys));
 
   const selectedPokemon = findExactRecord(pokemonList, pokemonQuery);
+  const targetAbilityOptions = selectedPokemon?.abilityOptions ?? [];
+  const targetItem = findExactRecord(itemList, targetItemQuery);
+  const targetItemName = targetItem?.name ?? targetItemQuery.trim();
   const availableSourceMoves = sourceMoves.filter(Boolean);
   const selectedSourceMove =
     availableSourceMoves.find((move) => move.name === selectedSourceMoveName) ?? availableSourceMoves[0] ?? null;
   const selectedEnemyMove = findExactRecord(moveList, moveQuery);
+  const currentMove = isDealMode ? selectedSourceMove : selectedEnemyMove;
   const configuredStats = buildActualStats(selectedPokemon, buildPartialSpValues(spKeys, spValues), natureName);
+  const attackStageLabel = STAT_LABELS[getAttackStatKeyForMove(currentMove)] ?? "攻撃";
+  const defenseStageLabel = STAT_LABELS[getDefenseStatKeyForMove(currentMove)] ?? "防御";
 
   const pokemonSuggestions = createSuggestions(
     pokemonList,
@@ -289,6 +329,7 @@ export default function DamageCalculatorPanel({
     (move) =>
       `${move.type} / ${move.moveKind}${move.attackClass ? ` / ${move.attackClass}` : ""}${move.power ? ` / 威力 ${move.power}` : ""}`,
   );
+  const itemSuggestions = createSuggestions(itemList, targetItemQuery, (item) => item.pocket);
 
   useEffect(() => {
     if (!isDealMode) {
@@ -302,6 +343,17 @@ export default function DamageCalculatorPanel({
     setSelectedSourceMoveName(availableSourceMoves[0]?.name ?? "");
   }, [availableSourceMoves, isDealMode, selectedSourceMoveName]);
 
+  useEffect(() => {
+    setTargetAbilityName((current) => {
+      if (!selectedPokemon) {
+        return "";
+      }
+
+      const nextAbility = selectedPokemon.abilityOptions.find((ability) => ability.name === current);
+      return nextAbility?.name ?? selectedPokemon.abilityOptions[0]?.name ?? "";
+    });
+  }, [selectedPokemon]);
+
   const result = isDealMode
     ? calculateDamageRange({
         attackerPokemon: sourcePokemon,
@@ -309,6 +361,17 @@ export default function DamageCalculatorPanel({
         attackerStats: sourceActualStats,
         defenderStats: configuredStats,
         move: selectedSourceMove,
+        attackerAbilityName: sourceAbilityName,
+        defenderAbilityName: targetAbilityName,
+        attackerItemName: sourceItemName,
+        defenderItemName: targetItemName,
+        attackerStage,
+        defenderStage,
+        fieldName,
+        attackerGrounded,
+        defenderGrounded,
+        isCritical,
+        isSpread,
       })
     : calculateDamageRange({
         attackerPokemon: selectedPokemon,
@@ -316,6 +379,17 @@ export default function DamageCalculatorPanel({
         attackerStats: configuredStats,
         defenderStats: sourceActualStats,
         move: selectedEnemyMove,
+        attackerAbilityName: targetAbilityName,
+        defenderAbilityName: sourceAbilityName,
+        attackerItemName: targetItemName,
+        defenderItemName: sourceItemName,
+        attackerStage,
+        defenderStage,
+        fieldName,
+        attackerGrounded,
+        defenderGrounded,
+        isCritical,
+        isSpread,
       });
 
   function updateSpValue(statKey, rawValue) {
@@ -393,7 +467,122 @@ export default function DamageCalculatorPanel({
         <NatureSelect value={natureName} onChange={setNatureName} />
       </div>
 
+      <div className="damage-side-grid">
+        <ReadOnlyModifierField label="こちらの特性" value={sourceAbilityName} />
+        <ReadOnlyModifierField label="こちらの持ち物" value={sourceItemName} />
+
+        <label className="field">
+          <span className="field__label">{targetLabel}の特性</span>
+          <select
+            className="field__input field__select"
+            value={targetAbilityName}
+            onChange={(event) => setTargetAbilityName(event.target.value)}
+            disabled={!selectedPokemon}
+          >
+            {selectedPokemon ? (
+              targetAbilityOptions.map((ability) => (
+                <option key={ability.name} value={ability.name}>
+                  {ability.name}
+                  {ability.isHidden ? " (夢)" : ""}
+                </option>
+              ))
+            ) : (
+              <option value="">ポケモン選択後</option>
+            )}
+          </select>
+          {targetAbilityName ? (
+            <small className="field__helper">
+              {targetAbilityOptions.find((ability) => ability.name === targetAbilityName)?.effect ?? ""}
+            </small>
+          ) : null}
+        </label>
+
+        <AutocompleteInput
+          label={`${targetLabel}の持ち物`}
+          value={targetItemQuery}
+          placeholder="例: オボンのみ"
+          suggestions={itemSuggestions}
+          onChange={setTargetItemQuery}
+          onSelect={setTargetItemQuery}
+        />
+      </div>
+
       <StatSpInputs statKeys={spKeys} values={spValues} inputs={spInputs} onChange={updateSpValue} />
+
+      <div className="damage-adjustment-grid">
+        <label className="field">
+          <span className="field__label">攻撃側 {attackStageLabel}ランク</span>
+          <select
+            className="field__input field__select"
+            value={attackerStage}
+            onChange={(event) => setAttackerStage(Number(event.target.value))}
+          >
+            {STAGE_OPTIONS.map((stage) => (
+              <option key={`attacker-stage-${stage}`} value={stage}>
+                {formatStageOptionLabel(stage)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field">
+          <span className="field__label">防御側 {defenseStageLabel}ランク</span>
+          <select
+            className="field__input field__select"
+            value={defenderStage}
+            onChange={(event) => setDefenderStage(Number(event.target.value))}
+          >
+            {STAGE_OPTIONS.map((stage) => (
+              <option key={`defender-stage-${stage}`} value={stage}>
+                {formatStageOptionLabel(stage)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="field">
+          <span className="field__label">フィールド</span>
+          <select
+            className="field__input field__select"
+            value={fieldName}
+            onChange={(event) => setFieldName(event.target.value)}
+          >
+            {FIELD_OPTIONS.map((fieldOption) => (
+              <option key={fieldOption} value={fieldOption}>
+                {fieldOption}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="damage-toggle">
+          <input type="checkbox" checked={isCritical} onChange={(event) => setIsCritical(event.target.checked)} />
+          <span>急所</span>
+        </label>
+
+        <label className="damage-toggle">
+          <input type="checkbox" checked={isSpread} onChange={(event) => setIsSpread(event.target.checked)} />
+          <span>複数対象</span>
+        </label>
+
+        <label className="damage-toggle">
+          <input
+            type="checkbox"
+            checked={attackerGrounded}
+            onChange={(event) => setAttackerGrounded(event.target.checked)}
+          />
+          <span>攻撃側は接地</span>
+        </label>
+
+        <label className="damage-toggle">
+          <input
+            type="checkbox"
+            checked={defenderGrounded}
+            onChange={(event) => setDefenderGrounded(event.target.checked)}
+          />
+          <span>防御側は接地</span>
+        </label>
+      </div>
 
       <div className="damage-panel__footer">
         <span className="damage-panel__remaining-sp">残りSP {remainingSp}</span>

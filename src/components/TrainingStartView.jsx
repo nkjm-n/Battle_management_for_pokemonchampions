@@ -1200,6 +1200,8 @@ export default function TrainingStartView({
             sourcePokemon={selectedPokemon}
             sourceActualStats={configuredActualStats}
             sourceMoves={selectedMoves}
+            sourceAbilityName={selectedAbility}
+            sourceItemName={itemQuery.trim()}
           />
 
           <DamageCalculatorPanel
@@ -1208,6 +1210,8 @@ export default function TrainingStartView({
             title="被ダメージ計算"
             sourcePokemon={selectedPokemon}
             sourceActualStats={configuredActualStats}
+            sourceAbilityName={selectedAbility}
+            sourceItemName={itemQuery.trim()}
           />
         </div>
       </section>

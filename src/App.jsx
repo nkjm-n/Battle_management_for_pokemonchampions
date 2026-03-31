@@ -93,23 +93,17 @@ const homeCards = [
   {
     id: "training",
     title: "育成開始",
-    eyebrow: "Calculator",
-    description: "ポケモン名・特性・持ち物・SP振り・性格補正から実数値を組み立てます。",
-    status: "available",
+    tone: "training",
   },
   {
     id: "trained",
     title: "育成済みポケモン",
-    eyebrow: "Archive",
-    description: "保存した個体を一覧で確認できます。",
-    status: "available",
+    tone: "trained",
   },
   {
     id: "teams",
     title: "バトルチーム",
-    eyebrow: "Roster",
-    description: "登録したチームごとに、所属ポケモン6匹をまとめて確認できます。",
-    status: "available",
+    tone: "teams",
   },
 ];
 
@@ -467,18 +461,11 @@ export default function App() {
         {homeCards.map((card) => (
           <button
             key={card.id}
-            className={`home-card ${card.status === "available" ? "home-card--active" : ""}`}
+            className={`home-card home-card--${card.tone}`}
             type="button"
             onClick={() => (card.id === "training" ? openTrainingForCreate() : moveTo(card.id))}
           >
-            <div className="home-card__header">
-              <span>{card.eyebrow}</span>
-              <strong>{card.title}</strong>
-            </div>
-            <p>{card.description}</p>
-            <span className={`home-card__status home-card__status--${card.status}`}>
-              {card.status === "available" ? "実装済み" : "準備中"}
-            </span>
+            <strong className="home-card__title">{card.title}</strong>
           </button>
         ))}
       </section>

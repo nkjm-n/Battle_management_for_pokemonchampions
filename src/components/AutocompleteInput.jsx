@@ -8,10 +8,11 @@ export default function AutocompleteInput({
   onChange,
   onSelect,
   helper,
+  disabled = false,
 }) {
   const inputId = useId();
   const [isFocused, setIsFocused] = useState(false);
-  const showSuggestions = isFocused && value.trim() !== "" && suggestions.length > 0;
+  const showSuggestions = !disabled && isFocused && value.trim() !== "" && suggestions.length > 0;
 
   return (
     <label className="field">
@@ -24,6 +25,7 @@ export default function AutocompleteInput({
           value={value}
           placeholder={placeholder}
           autoComplete="off"
+          disabled={disabled}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           onChange={(event) => onChange(event.target.value)}

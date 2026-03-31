@@ -1,4 +1,4 @@
-import { startTransition, useDeferredValue, useEffect, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
 import {
   MAX_BATTLE_TEAM_SIZE,
   NEW_BATTLE_TEAM_OPTION,
@@ -8,6 +8,7 @@ import {
   normalizeBattleTeamName,
 } from "../lib/battleTeams";
 import { itemList, moveList, pokemonList } from "../lib/data";
+import { getMegaStoneItemName } from "../lib/megaStones";
 import { getMoveTypeClassName } from "../lib/moveTypeClass";
 import { getNatureMultiplier, natureMap, natures, statsOrder } from "../lib/natures";
 import AutocompleteInput from "./AutocompleteInput";
@@ -198,10 +199,13 @@ export default function TrainingStartView({
   const [spInputValues, setSpInputValues] = useState(() =>
     createSpInputState(getEntrySpValues(initialEntry)),
   );
+  const previousLockedItemNameRef = useRef("");
 
   const deferredPokemonQuery = useDeferredValue(pokemonQuery);
   const deferredItemQuery = useDeferredValue(itemQuery);
   const deferredMoveQueries = useDeferredValue(moveQueries);
+  const megaStoneItemName = getMegaStoneItemName(selectedPokemon?.name);
+  const isMegaStoneLocked = Boolean(megaStoneItemName);
 
   const pokemonSuggestions = createSuggestions(
     pokemonList,
@@ -238,6 +242,24 @@ export default function TrainingStartView({
   useEffect(() => {
     setSelectedItem(findExactRecord(itemList, itemQuery));
   }, [itemQuery]);
+
+  useEffect(() => {
+    const previousLockedItemName = previousLockedItemNameRef.current;
+
+    setItemQuery((current) => {
+      if (megaStoneItemName) {
+        return current === megaStoneItemName ? current : megaStoneItemName;
+      }
+
+      if (previousLockedItemName && current === previousLockedItemName) {
+        return "";
+      }
+
+      return current;
+    });
+
+    previousLockedItemNameRef.current = megaStoneItemName;
+  }, [megaStoneItemName]);
 
   useEffect(() => {
     setSelectedMoves(moveQueries.map((query) => findExactRecord(moveList, query)));
@@ -290,6 +312,8 @@ export default function TrainingStartView({
 
   const totalSp = Object.values(spValues).reduce((sum, value) => sum + value, 0);
   const remainingSp = TOTAL_SP_LIMIT - totalSp;
+  const itemEffectMessage =
+    selectedItem?.effect ?? (isMegaStoneLocked ? "メガシンカ用の固定持ち物です。" : "");
   const isEditing = Boolean(initialEntry);
   const saveButtonLabel = isEditing ? "上書き保存" : "保存";
   const saveNoticeLabel = isEditing ? "上書き保存しました" : "保存されました";
@@ -772,9 +796,11 @@ export default function TrainingStartView({
               suggestions={itemSuggestions}
               onChange={setItemQuery}
               onSelect={selectItem}
+              helper={isMegaStoneLocked ? `${megaStoneItemName} に固定されています。` : ""}
+              disabled={isMegaStoneLocked}
             />
 
-            {selectedItem ? <div className="item-effect-box">{selectedItem.effect}</div> : null}
+            {itemEffectMessage ? <div className="item-effect-box">{itemEffectMessage}</div> : null}
           </div>
 
           <div className="field">

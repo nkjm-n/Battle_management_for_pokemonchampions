@@ -821,6 +821,14 @@ button {
   padding: 11px 13px;
 }
 
+.field__input:disabled,
+.field__select:disabled,
+.field__textarea:disabled {
+  cursor: not-allowed;
+  color: #556070;
+  background: rgba(242, 244, 248, 0.96);
+}
+
 .field__select {
   appearance: none;
   background-image:

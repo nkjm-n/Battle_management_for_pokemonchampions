@@ -450,8 +450,10 @@ export default function App() {
     <main className="app-shell">
       <section className="hero">
         <div className="hero__main">
-          <p className="hero__eyebrow">BTMPC</p>
+          <p className="hero__eyebrow">Battle Team Management for Pokemon Champions</p>
           <p className="hero__copy">
+            最終更新日：2026/3/31
+            <br />
             未実装：新メガシンカポケモンの追加・PPの変更・新仕様の能力ランク
           </p>
         </div>

@@ -116,6 +116,26 @@ export default function App() {
     moveTo("teamDetail");
   }
 
+  function handleDeleteBattleTeam(teamId) {
+    setBattleTeams((current) => current.filter((team) => team.id !== teamId));
+    setSavedPokemon((current) =>
+      current.map((entry) =>
+        entry.battleTeamId === teamId
+          ? {
+              ...entry,
+              battleTeamId: null,
+              battleTeamName: "",
+            }
+          : entry,
+      ),
+    );
+
+    if (viewingBattleTeamId === teamId) {
+      setViewingBattleTeamId(null);
+      moveTo("teams");
+    }
+  }
+
   function handleSavePokemon({ battleTeamId, newBattleTeamName, ...entry }) {
     const existingEntry = savedPokemon.find((savedEntry) => savedEntry.id === entry.id) ?? null;
     const normalizedBattleTeams = normalizeBattleTeams(battleTeams);
@@ -267,6 +287,7 @@ export default function App() {
         battleTeams={battleTeams}
         savedPokemon={savedPokemon}
         onBack={() => moveTo("home")}
+        onDeleteTeam={handleDeleteBattleTeam}
         onSelectTeam={openBattleTeamDetail}
       />
     );

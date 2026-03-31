@@ -2,7 +2,18 @@ import { startTransition, useEffect, useState } from "react";
 import TrainingStartView from "./components/TrainingStartView";
 import TrainedPokemonView from "./components/TrainedPokemonView";
 import {
+  MAX_BATTLE_TEAM_SIZE,
+  createBattleTeamId,
+  findAssignedBattleTeamId,
+  findBattleTeamById,
+  findBattleTeamByName,
+  normalizeBattleTeams,
+  normalizeBattleTeamName,
+} from "./lib/battleTeams";
+import {
+  loadBattleTeamsFromStorage,
   loadSavedPokemonFromStorage,
+  saveBattleTeamsToStorage,
   saveSavedPokemonToStorage,
 } from "./lib/savedPokemonStorage";
 
@@ -50,19 +61,21 @@ function PlaceholderView({ title, onBack }) {
 export default function App() {
   const [activeView, setActiveView] = useState("home");
   const [savedPokemon, setSavedPokemon] = useState([]);
+  const [battleTeams, setBattleTeams] = useState([]);
   const [isStorageReady, setIsStorageReady] = useState(false);
   const [editingPokemonId, setEditingPokemonId] = useState(null);
 
   useEffect(() => {
     let isCancelled = false;
 
-    loadSavedPokemonFromStorage()
-      .then((loadedPokemon) => {
+    Promise.all([loadSavedPokemonFromStorage(), loadBattleTeamsFromStorage()])
+      .then(([loadedPokemon, loadedBattleTeams]) => {
         if (isCancelled) {
           return;
         }
 
         setSavedPokemon(loadedPokemon);
+        setBattleTeams(normalizeBattleTeams(loadedBattleTeams));
         setIsStorageReady(true);
       })
       .catch(() => {
@@ -71,6 +84,7 @@ export default function App() {
         }
 
         setSavedPokemon([]);
+        setBattleTeams([]);
         setIsStorageReady(true);
       });
 
@@ -86,6 +100,14 @@ export default function App() {
 
     void saveSavedPokemonToStorage(savedPokemon);
   }, [savedPokemon, isStorageReady]);
+
+  useEffect(() => {
+    if (!isStorageReady) {
+      return;
+    }
+
+    void saveBattleTeamsToStorage(battleTeams);
+  }, [battleTeams, isStorageReady]);
 
   function moveTo(view) {
     startTransition(() => {
@@ -103,20 +125,105 @@ export default function App() {
     moveTo("training");
   }
 
-  function handleSavePokemon(entry) {
+  function handleSavePokemon({ battleTeamId, newBattleTeamName, ...entry }) {
+    const existingEntry = savedPokemon.find((savedEntry) => savedEntry.id === entry.id) ?? null;
+    const normalizedBattleTeams = normalizeBattleTeams(battleTeams);
+    const normalizedNewBattleTeamName = normalizeBattleTeamName(newBattleTeamName);
+    let nextBattleTeams = normalizedBattleTeams;
+    let targetBattleTeamId = battleTeamId || null;
+
+    if (normalizedNewBattleTeamName) {
+      const existingTeamByName = findBattleTeamByName(normalizedBattleTeams, normalizedNewBattleTeamName);
+
+      if (existingTeamByName) {
+        targetBattleTeamId = existingTeamByName.id;
+      } else {
+        const createdAt = new Date().toISOString();
+        const createdTeam = {
+          id: createBattleTeamId(),
+          name: normalizedNewBattleTeamName,
+          pokemonIds: [],
+          createdAt,
+          updatedAt: createdAt,
+        };
+
+        nextBattleTeams = [createdTeam, ...normalizedBattleTeams];
+        targetBattleTeamId = createdTeam.id;
+      }
+    }
+
+    const previousBattleTeamId = findAssignedBattleTeamId(nextBattleTeams, existingEntry);
+    const targetBattleTeam = findBattleTeamById(nextBattleTeams, targetBattleTeamId);
+    const isAlreadyAssignedToTargetTeam =
+      targetBattleTeam?.pokemonIds.includes(entry.id) || previousBattleTeamId === targetBattleTeamId;
+
+    if (targetBattleTeam && !isAlreadyAssignedToTargetTeam && targetBattleTeam.pokemonIds.length >= MAX_BATTLE_TEAM_SIZE) {
+      return {
+        ok: false,
+        message: "このバトルチームは6匹までです。",
+      };
+    }
+
+    const touchedAt = new Date().toISOString();
+    const nextSavedEntry = {
+      ...entry,
+      battleTeamId: targetBattleTeam?.id ?? null,
+      battleTeamName: targetBattleTeam?.name ?? "",
+    };
+
     setSavedPokemon((current) => {
-      const existingEntryIndex = current.findIndex((savedEntry) => savedEntry.id === entry.id);
+      const existingEntryIndex = current.findIndex((savedEntry) => savedEntry.id === nextSavedEntry.id);
 
       if (existingEntryIndex === -1) {
-        return [entry, ...current];
+        return [nextSavedEntry, ...current];
       }
 
-      return current.map((savedEntry) => (savedEntry.id === entry.id ? entry : savedEntry));
+      return current.map((savedEntry) =>
+        savedEntry.id === nextSavedEntry.id ? nextSavedEntry : savedEntry,
+      );
     });
+    setBattleTeams(
+      nextBattleTeams.map((team) => {
+        const previousPokemonIds = team.pokemonIds;
+        const filteredPokemonIds = previousPokemonIds.filter((pokemonId) => pokemonId !== entry.id);
+        const nextPokemonIds =
+          team.id === targetBattleTeam?.id ? [...filteredPokemonIds, entry.id] : filteredPokemonIds;
+        const didChange =
+          nextPokemonIds.length !== previousPokemonIds.length ||
+          nextPokemonIds.some((pokemonId, index) => pokemonId !== previousPokemonIds[index]);
+
+        return didChange
+          ? {
+              ...team,
+              pokemonIds: nextPokemonIds,
+              updatedAt: touchedAt,
+            }
+          : team;
+      }),
+    );
+
+    return {
+      ok: true,
+      battleTeamId: targetBattleTeam?.id ?? null,
+    };
   }
 
   function handleDeletePokemon(entryId) {
+    const touchedAt = new Date().toISOString();
     setSavedPokemon((current) => current.filter((entry) => entry.id !== entryId));
+    setBattleTeams((current) =>
+      current.map((team) => {
+        if (!team.pokemonIds?.includes(entryId)) {
+          return team;
+        }
+
+        return {
+          ...team,
+          pokemonIds: team.pokemonIds.filter((pokemonId) => pokemonId !== entryId),
+          updatedAt: touchedAt,
+        };
+      }),
+    );
   }
 
   const editingPokemon =
@@ -139,6 +246,7 @@ export default function App() {
   if (activeView === "training") {
     return (
       <TrainingStartView
+        battleTeams={battleTeams}
         initialEntry={editingPokemon}
         backLabel={editingPokemon ? "一覧へ戻る" : "ホームへ戻る"}
         onBack={() => moveTo(editingPokemon ? "trained" : "home")}

@@ -1,4 +1,12 @@
 import { startTransition, useDeferredValue, useEffect, useState } from "react";
+import {
+  MAX_BATTLE_TEAM_SIZE,
+  NEW_BATTLE_TEAM_OPTION,
+  findAssignedBattleTeamId,
+  findBattleTeamById,
+  findBattleTeamByName,
+  normalizeBattleTeamName,
+} from "../lib/battleTeams";
 import { itemList, moveList, pokemonList } from "../lib/data";
 import { getMoveTypeClassName } from "../lib/moveTypeClass";
 import { getNatureMultiplier, natureMap, natures, statsOrder } from "../lib/natures";
@@ -162,6 +170,7 @@ function getDefensiveNatureCandidates(pokemon) {
 }
 
 export default function TrainingStartView({
+  battleTeams = [],
   initialEntry = null,
   backLabel = "ホームへ戻る",
   onBack,
@@ -177,10 +186,14 @@ export default function TrainingStartView({
   const [moveQueries, setMoveQueries] = useState(() => getEntryMoveQueries(initialEntry));
   const [selectedMoves, setSelectedMoves] = useState(defaultSelectedMoves);
   const [selectedNature, setSelectedNature] = useState(initialEntry?.natureName ?? "まじめ");
+  const [selectedBattleTeamId, setSelectedBattleTeamId] = useState(
+    () => findAssignedBattleTeamId(battleTeams, initialEntry) ?? "",
+  );
+  const [newBattleTeamName, setNewBattleTeamName] = useState("");
   const [isNatureTableOpen, setIsNatureTableOpen] = useState(false);
   const [draggingSpStatKey, setDraggingSpStatKey] = useState(null);
   const [autoAdjustNotice, setAutoAdjustNotice] = useState("");
-  const [saveNoticeAt, setSaveNoticeAt] = useState(0);
+  const [saveNotice, setSaveNotice] = useState(null);
   const [spValues, setSpValues] = useState(() => getEntrySpValues(initialEntry));
   const [spInputValues, setSpInputValues] = useState(() =>
     createSpInputState(getEntrySpValues(initialEntry)),
@@ -264,23 +277,45 @@ export default function TrainingStartView({
   }, [draggingSpStatKey]);
 
   useEffect(() => {
-    if (!saveNoticeAt) {
+    if (!saveNotice) {
       return undefined;
     }
 
     const timerId = window.setTimeout(() => {
-      setSaveNoticeAt(0);
+      setSaveNotice(null);
     }, 2000);
 
     return () => window.clearTimeout(timerId);
-  }, [saveNoticeAt]);
+  }, [saveNotice]);
 
   const totalSp = Object.values(spValues).reduce((sum, value) => sum + value, 0);
   const remainingSp = TOTAL_SP_LIMIT - totalSp;
-  const canSave = Boolean(selectedPokemon);
   const isEditing = Boolean(initialEntry);
   const saveButtonLabel = isEditing ? "上書き保存" : "保存";
   const saveNoticeLabel = isEditing ? "上書き保存しました" : "保存されました";
+  const normalizedNewBattleTeamName = normalizeBattleTeamName(newBattleTeamName);
+  const selectedBattleTeam =
+    selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION
+      ? findBattleTeamByName(battleTeams, normalizedNewBattleTeamName)
+      : findBattleTeamById(battleTeams, selectedBattleTeamId);
+  const currentBattleTeamId = findAssignedBattleTeamId(battleTeams, initialEntry);
+  const isAlreadyInSelectedBattleTeam =
+    selectedBattleTeam?.pokemonIds.includes(initialEntry?.id ?? "") ||
+    selectedBattleTeam?.id === currentBattleTeamId;
+  const isBattleTeamNameRequired =
+    selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION && !normalizedNewBattleTeamName;
+  const isSelectedBattleTeamFull =
+    Boolean(selectedBattleTeam) &&
+    selectedBattleTeam.pokemonIds.length >= MAX_BATTLE_TEAM_SIZE &&
+    !isAlreadyInSelectedBattleTeam;
+  const battleTeamStatusMessage = isBattleTeamNameRequired
+    ? "新規チーム名を入力してください。"
+    : isSelectedBattleTeamFull
+      ? `${selectedBattleTeam.name} は6匹です。`
+      : selectedBattleTeam
+        ? `${selectedBattleTeam.name} (${selectedBattleTeam.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE})`
+        : "";
+  const canSave = Boolean(selectedPokemon) && !isBattleTeamNameRequired && !isSelectedBattleTeamFull;
 
   useEffect(() => {
     const nextSpValues = getEntrySpValues(initialEntry);
@@ -292,6 +327,8 @@ export default function TrainingStartView({
     setItemQuery(initialEntry?.itemName ?? "");
     setMoveQueries(getEntryMoveQueries(initialEntry));
     setSelectedNature(initialEntry?.natureName ?? "まじめ");
+    setSelectedBattleTeamId(findAssignedBattleTeamId(battleTeams, initialEntry) ?? "");
+    setNewBattleTeamName("");
     setSpValues(nextSpValues);
     setSpInputValues(createSpInputState(nextSpValues));
     setSelectedPokemon(findExactRecord(pokemonList, initialEntry?.pokemonName ?? ""));
@@ -302,7 +339,7 @@ export default function TrainingStartView({
     setIsNatureTableOpen(false);
     setDraggingSpStatKey(null);
     setAutoAdjustNotice("");
-    setSaveNoticeAt(0);
+    setSaveNotice(null);
   }, [initialEntry?.id]);
 
   function selectPokemon(name) {
@@ -323,6 +360,15 @@ export default function TrainingStartView({
     setAutoAdjustNotice("");
     setSelectedNature(natureName);
     setIsNatureTableOpen(false);
+  }
+
+  function handleBattleTeamChange(nextValue) {
+    setSaveNotice(null);
+    setSelectedBattleTeamId(nextValue);
+
+    if (nextValue !== NEW_BATTLE_TEAM_OPTION) {
+      setNewBattleTeamName("");
+    }
   }
 
   function getMaxAssignableSp(statKey, values = spValues) {
@@ -626,7 +672,7 @@ export default function TrainingStartView({
     );
     const trimmedItemName = itemQuery.trim();
 
-    onSave({
+    const saveResult = onSave({
       id: initialEntry?.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       savedAt: new Date().toISOString(),
       pokemonName: selectedPokemon.name,
@@ -650,8 +696,24 @@ export default function TrainingStartView({
       ),
       spValues: { ...spValues },
       actualStats,
+      battleTeamId: selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? "" : selectedBattleTeamId,
+      newBattleTeamName: selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? newBattleTeamName : "",
     });
-    setSaveNoticeAt(Date.now());
+
+    if (!saveResult?.ok) {
+      setSaveNotice({
+        tone: "error",
+        message: saveResult?.message ?? "保存できませんでした。",
+      });
+      return;
+    }
+
+    setSelectedBattleTeamId(saveResult.battleTeamId ?? "");
+    setNewBattleTeamName("");
+    setSaveNotice({
+      tone: "success",
+      message: saveNoticeLabel,
+    });
   }
 
   function updateMoveQuery(slotIndex, nextValue) {
@@ -674,7 +736,9 @@ export default function TrainingStartView({
           <button className="ghost-button" type="button" disabled={!canSave} onClick={handleSave}>
             {saveButtonLabel}
           </button>
-          {saveNoticeAt ? <span className="save-notice">{saveNoticeLabel}</span> : null}
+          {saveNotice ? (
+            <span className={`save-notice save-notice--${saveNotice.tone}`}>{saveNotice.message}</span>
+          ) : null}
         </div>
       </header>
 
@@ -729,6 +793,51 @@ export default function TrainingStartView({
               </button>
             </div>
           </div>
+
+          <div className="field">
+            <span className="field__label">バトルチーム選択</span>
+            <select
+              className="field__input field__select"
+              value={selectedBattleTeamId}
+              onChange={(event) => handleBattleTeamChange(event.target.value)}
+            >
+              <option value="">未設定</option>
+              {battleTeams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {`${team.name} (${team.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE})`}
+                </option>
+              ))}
+              <option value={NEW_BATTLE_TEAM_OPTION}>新規チームを作成</option>
+            </select>
+          </div>
+
+          {selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? (
+            <label className="field">
+              <span className="field__label">新規チーム名</span>
+              <input
+                className="field__input"
+                type="text"
+                value={newBattleTeamName}
+                placeholder="例: シーズン1"
+                onChange={(event) => {
+                  setSaveNotice(null);
+                  setNewBattleTeamName(event.target.value);
+                }}
+              />
+            </label>
+          ) : null}
+
+          {battleTeamStatusMessage ? (
+            <p
+              className={`team-selection-note ${
+                isBattleTeamNameRequired || isSelectedBattleTeamFull
+                  ? "team-selection-note--error"
+                  : ""
+              }`}
+            >
+              {battleTeamStatusMessage}
+            </p>
+          ) : null}
 
           {selectedPokemon ? (
             <div className="ability-panel">

@@ -2,7 +2,9 @@ const DB_NAME = "poke-champ-storage";
 const DB_VERSION = 1;
 const STORE_NAME = "app-state";
 const SAVED_POKEMON_KEY = "saved-pokemon";
+const BATTLE_TEAMS_KEY = "battle-teams";
 const LEGACY_LOCAL_STORAGE_KEY = "poke-champ-trained-pokemon";
+const LEGACY_BATTLE_TEAMS_STORAGE_KEY = "poke-champ-battle-teams";
 
 let databasePromise = null;
 
@@ -39,6 +41,36 @@ function clearLegacySavedPokemon() {
 
   try {
     window.localStorage.removeItem(LEGACY_LOCAL_STORAGE_KEY);
+  } catch {
+    // Ignore localStorage cleanup failures and continue using IndexedDB.
+  }
+}
+
+function readLegacyBattleTeams() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(LEGACY_BATTLE_TEAMS_STORAGE_KEY);
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    return Array.isArray(parsedValue) ? parsedValue : [];
+  } catch {
+    return [];
+  }
+}
+
+function clearLegacyBattleTeams() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(LEGACY_BATTLE_TEAMS_STORAGE_KEY);
   } catch {
     // Ignore localStorage cleanup failures and continue using IndexedDB.
   }
@@ -151,5 +183,54 @@ export async function saveSavedPokemonToStorage(savedPokemon) {
     clearLegacySavedPokemon();
   } catch {
     window.localStorage.setItem(LEGACY_LOCAL_STORAGE_KEY, JSON.stringify(normalizedValue));
+  }
+}
+
+export async function loadBattleTeamsFromStorage() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const legacyBattleTeams = readLegacyBattleTeams();
+
+  try {
+    if (!getIndexedDb()) {
+      return legacyBattleTeams;
+    }
+
+    const indexedDbValue = await readStoredValue(BATTLE_TEAMS_KEY);
+    if (Array.isArray(indexedDbValue)) {
+      return indexedDbValue;
+    }
+
+    if (legacyBattleTeams.length > 0) {
+      await writeStoredValue(BATTLE_TEAMS_KEY, legacyBattleTeams);
+      clearLegacyBattleTeams();
+      return legacyBattleTeams;
+    }
+
+    return [];
+  } catch {
+    return legacyBattleTeams;
+  }
+}
+
+export async function saveBattleTeamsToStorage(battleTeams) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const normalizedValue = Array.isArray(battleTeams) ? battleTeams : [];
+
+  try {
+    if (!getIndexedDb()) {
+      window.localStorage.setItem(LEGACY_BATTLE_TEAMS_STORAGE_KEY, JSON.stringify(normalizedValue));
+      return;
+    }
+
+    await writeStoredValue(BATTLE_TEAMS_KEY, normalizedValue);
+    clearLegacyBattleTeams();
+  } catch {
+    window.localStorage.setItem(LEGACY_BATTLE_TEAMS_STORAGE_KEY, JSON.stringify(normalizedValue));
   }
 }

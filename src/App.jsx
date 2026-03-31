@@ -456,9 +456,9 @@ export default function App() {
     <main className="app-shell">
       <section className="hero">
         <div className="hero__main">
-          <p className="hero__eyebrow">バトルチーム管理 for pokemonchampions</p>
+          <p className="hero__eyebrow">BTMPC</p>
           <p className="hero__copy">
-            現在：メガシンカ未実装
+            未実装：新メガシンカポケモンの追加・PPの変更・新仕様の能力ランク
           </p>
         </div>
       </section>

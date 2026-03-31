@@ -10,6 +10,7 @@ import { getMoveTypeClassName } from "../lib/moveTypeClass";
 import { getNatureMultiplier, natureMap, natures, statsOrder } from "../lib/natures";
 import AutocompleteInput from "./AutocompleteInput";
 import BattleTeamSelectorModal from "./BattleTeamSelectorModal";
+import DamageCalculatorPanel from "./DamageCalculatorPanel";
 import NatureMatrix from "./NatureMatrix";
 
 const statCards = [
@@ -862,6 +863,15 @@ export default function TrainingStartView({
     });
   }
 
+  const configuredActualStats = selectedPokemon
+    ? Object.fromEntries(
+        statCards.map((stat) => [
+          stat.key,
+          calculateConfiguredStatValue(stat.key, spValues[stat.key], selectedNature),
+        ]),
+      )
+    : null;
+
   return (
     <div className="view-shell view-shell--training">
       <header className="topbar">
@@ -879,7 +889,8 @@ export default function TrainingStartView({
       </header>
 
       <section className="training-layout">
-        <div className="panel panel--strong training-step training-step--primary">
+        <div className="training-column">
+        <div className="panel panel--strong training-step training-panel-main training-step--primary">
           <div className="field-grid field-grid--stack">
             <AutocompleteInput
               label="名前"
@@ -1011,7 +1022,17 @@ export default function TrainingStartView({
 
         </div>
 
-        <div className="panel panel--soft training-step training-step--merged">
+          <DamageCalculatorPanel
+            mode="deal"
+            title="与ダメージ計算"
+            sourcePokemon={selectedPokemon}
+            sourceActualStats={configuredActualStats}
+            sourceMoves={selectedMoves}
+          />
+        </div>
+
+        <div className="training-column">
+        <div className="panel panel--soft training-step training-panel-main training-step--merged">
           <div className="move-grid">
             {moveQueries.map((moveQuery, index) => {
               const selectedMove = selectedMoves[index];
@@ -1179,6 +1200,14 @@ export default function TrainingStartView({
             </button>
             {autoAdjustNotice ? <p className="stat-card__notice">{autoAdjustNotice}</p> : null}
           </div>
+        </div>
+
+          <DamageCalculatorPanel
+            mode="take"
+            title="被ダメージ計算"
+            sourcePokemon={selectedPokemon}
+            sourceActualStats={configuredActualStats}
+          />
         </div>
       </section>
 

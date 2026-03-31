@@ -794,50 +794,52 @@ export default function TrainingStartView({
             </div>
           </div>
 
-          <div className="field">
-            <span className="field__label">バトルチーム選択</span>
-            <select
-              className="field__input field__select"
-              value={selectedBattleTeamId}
-              onChange={(event) => handleBattleTeamChange(event.target.value)}
-            >
-              <option value="">未設定</option>
-              {battleTeams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {`${team.name} (${team.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE})`}
-                </option>
-              ))}
-              <option value={NEW_BATTLE_TEAM_OPTION}>新規チームを作成</option>
-            </select>
+          <div className="team-selection-stack">
+            <div className="field">
+              <span className="field__label">バトルチーム選択</span>
+              <select
+                className="field__input field__select"
+                value={selectedBattleTeamId}
+                onChange={(event) => handleBattleTeamChange(event.target.value)}
+              >
+                <option value="">未設定</option>
+                {battleTeams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {`${team.name} (${team.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE})`}
+                  </option>
+                ))}
+                <option value={NEW_BATTLE_TEAM_OPTION}>新規チームを作成</option>
+              </select>
+            </div>
+
+            {selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? (
+              <label className="field">
+                <span className="field__label">新規チーム名</span>
+                <input
+                  className="field__input"
+                  type="text"
+                  value={newBattleTeamName}
+                  placeholder="例: シーズン1"
+                  onChange={(event) => {
+                    setSaveNotice(null);
+                    setNewBattleTeamName(event.target.value);
+                  }}
+                />
+              </label>
+            ) : null}
+
+            {battleTeamStatusMessage ? (
+              <p
+                className={`team-selection-note ${
+                  isBattleTeamNameRequired || isSelectedBattleTeamFull
+                    ? "team-selection-note--error"
+                    : ""
+                }`}
+              >
+                {battleTeamStatusMessage}
+              </p>
+            ) : null}
           </div>
-
-          {selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? (
-            <label className="field">
-              <span className="field__label">新規チーム名</span>
-              <input
-                className="field__input"
-                type="text"
-                value={newBattleTeamName}
-                placeholder="例: シーズン1"
-                onChange={(event) => {
-                  setSaveNotice(null);
-                  setNewBattleTeamName(event.target.value);
-                }}
-              />
-            </label>
-          ) : null}
-
-          {battleTeamStatusMessage ? (
-            <p
-              className={`team-selection-note ${
-                isBattleTeamNameRequired || isSelectedBattleTeamFull
-                  ? "team-selection-note--error"
-                  : ""
-              }`}
-            >
-              {battleTeamStatusMessage}
-            </p>
-          ) : null}
 
           {selectedPokemon ? (
             <div className="ability-panel">

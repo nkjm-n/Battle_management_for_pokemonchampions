@@ -1,4 +1,5 @@
 import { startTransition, useEffect, useState } from "react";
+import BattleTeamsView from "./components/BattleTeamsView";
 import TrainingStartView from "./components/TrainingStartView";
 import TrainedPokemonView from "./components/TrainedPokemonView";
 import {
@@ -36,27 +37,10 @@ const homeCards = [
     id: "teams",
     title: "バトルチーム",
     eyebrow: "Roster",
-    description: "チーム単位で育成済みポケモンを編成する画面。今回は入口だけ先に用意します。",
-    status: "planned",
+    description: "登録したチームごとに、所属ポケモン6匹をまとめて確認できます。",
+    status: "available",
   },
 ];
-
-function PlaceholderView({ title, onBack }) {
-  return (
-    <div className="view-shell">
-      <header className="topbar">
-        <button className="ghost-button" type="button" onClick={onBack}>
-          ホームへ戻る
-        </button>
-      </header>
-      <section className="panel panel--soft placeholder-panel">
-        <p className="section-heading__eyebrow">Coming Next</p>
-        <h1>{title}</h1>
-        <p>この画面は次の実装対象です。今回は「育成開始」と「育成済みポケモン」までを先に動作させています。</p>
-      </section>
-    </div>
-  );
-}
 
 export default function App() {
   const [activeView, setActiveView] = useState("home");
@@ -267,7 +251,13 @@ export default function App() {
   }
 
   if (activeView === "teams") {
-    return <PlaceholderView title="バトルチーム" onBack={() => moveTo("home")} />;
+    return (
+      <BattleTeamsView
+        battleTeams={battleTeams}
+        savedPokemon={savedPokemon}
+        onBack={() => moveTo("home")}
+      />
+    );
   }
 
   return (

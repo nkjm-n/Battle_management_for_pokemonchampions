@@ -1,10 +1,7 @@
 import { startTransition, useDeferredValue, useEffect, useRef, useState } from "react";
 import {
   MAX_BATTLE_TEAM_SIZE,
-  NEW_BATTLE_TEAM_OPTION,
-  findAssignedBattleTeamId,
-  findBattleTeamById,
-  findBattleTeamByName,
+  findAssignedBattleTeamIds,
   normalizeBattleTeamName,
 } from "../lib/battleTeams";
 import { itemList, moveList, pokemonList } from "../lib/data";
@@ -12,6 +9,7 @@ import { getMegaStoneItemName } from "../lib/megaStones";
 import { getMoveTypeClassName } from "../lib/moveTypeClass";
 import { getNatureMultiplier, natureMap, natures, statsOrder } from "../lib/natures";
 import AutocompleteInput from "./AutocompleteInput";
+import BattleTeamSelectorModal from "./BattleTeamSelectorModal";
 import NatureMatrix from "./NatureMatrix";
 
 const statCards = [
@@ -170,6 +168,10 @@ function getDefensiveNatureCandidates(pokemon) {
   return natures.filter((nature) => nature.down === preferredDownStatKey);
 }
 
+function createDraftBattleTeamId() {
+  return `draft-team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function TrainingStartView({
   battleTeams = [],
   initialEntry = null,
@@ -187,13 +189,16 @@ export default function TrainingStartView({
   const [moveQueries, setMoveQueries] = useState(() => getEntryMoveQueries(initialEntry));
   const [selectedMoves, setSelectedMoves] = useState(defaultSelectedMoves);
   const [selectedNature, setSelectedNature] = useState(initialEntry?.natureName ?? "まじめ");
-  const [selectedBattleTeamId, setSelectedBattleTeamId] = useState(
-    () => findAssignedBattleTeamId(battleTeams, initialEntry) ?? "",
+  const [selectedBattleTeamIds, setSelectedBattleTeamIds] = useState(
+    () => findAssignedBattleTeamIds(battleTeams, initialEntry),
   );
+  const [draftBattleTeams, setDraftBattleTeams] = useState([]);
   const [newBattleTeamName, setNewBattleTeamName] = useState("");
   const [isNatureTableOpen, setIsNatureTableOpen] = useState(false);
+  const [isBattleTeamModalOpen, setIsBattleTeamModalOpen] = useState(false);
   const [draggingSpStatKey, setDraggingSpStatKey] = useState(null);
   const [autoAdjustNotice, setAutoAdjustNotice] = useState("");
+  const [battleTeamNotice, setBattleTeamNotice] = useState(null);
   const [saveNotice, setSaveNotice] = useState(null);
   const [spValues, setSpValues] = useState(() => getEntrySpValues(initialEntry));
   const [spInputValues, setSpInputValues] = useState(() =>
@@ -281,6 +286,21 @@ export default function TrainingStartView({
   }, [isNatureTableOpen]);
 
   useEffect(() => {
+    if (!isBattleTeamModalOpen) {
+      return undefined;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setIsBattleTeamModalOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isBattleTeamModalOpen]);
+
+  useEffect(() => {
     if (!draggingSpStatKey) {
       return undefined;
     }
@@ -318,28 +338,49 @@ export default function TrainingStartView({
   const saveButtonLabel = isEditing ? "上書き保存" : "保存";
   const saveNoticeLabel = isEditing ? "上書き保存しました" : "保存されました";
   const normalizedNewBattleTeamName = normalizeBattleTeamName(newBattleTeamName);
-  const selectedBattleTeam =
-    selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION
-      ? findBattleTeamByName(battleTeams, normalizedNewBattleTeamName)
-      : findBattleTeamById(battleTeams, selectedBattleTeamId);
-  const currentBattleTeamId = findAssignedBattleTeamId(battleTeams, initialEntry);
-  const isAlreadyInSelectedBattleTeam =
-    selectedBattleTeam?.pokemonIds.includes(initialEntry?.id ?? "") ||
-    selectedBattleTeam?.id === currentBattleTeamId;
-  const isBattleTeamNameRequired =
-    selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION && !normalizedNewBattleTeamName;
-  const isSelectedBattleTeamFull =
-    Boolean(selectedBattleTeam) &&
-    selectedBattleTeam.pokemonIds.length >= MAX_BATTLE_TEAM_SIZE &&
-    !isAlreadyInSelectedBattleTeam;
-  const battleTeamStatusMessage = isBattleTeamNameRequired
-    ? "新規チーム名を入力してください。"
-    : isSelectedBattleTeamFull
-      ? `${selectedBattleTeam.name} は6匹です。`
-      : selectedBattleTeam
-        ? `${selectedBattleTeam.name} (${selectedBattleTeam.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE})`
-        : "";
-  const canSave = Boolean(selectedPokemon) && !isBattleTeamNameRequired && !isSelectedBattleTeamFull;
+  const draftBattleTeamIdSet = new Set(draftBattleTeams.map((team) => team.id));
+  const currentBattleTeamIds = findAssignedBattleTeamIds(battleTeams, initialEntry);
+  const battleTeamOptions = [
+    ...battleTeams,
+    ...draftBattleTeams.map((team) => ({
+      ...team,
+      pokemonIds: [],
+    })),
+  ].map((team) => {
+    const isDraft = draftBattleTeamIdSet.has(team.id);
+    const isCurrentMember = currentBattleTeamIds.includes(team.id);
+    const isSelected = selectedBattleTeamIds.includes(team.id);
+    const isFull = !isDraft && team.pokemonIds.length >= MAX_BATTLE_TEAM_SIZE && !isCurrentMember;
+
+    return {
+      ...team,
+      isDraft,
+      isSelected,
+      isDisabled: isFull,
+      statusLabel: isFull
+        ? "満員"
+        : isDraft
+          ? `新規チーム / 0/${MAX_BATTLE_TEAM_SIZE}`
+          : `${team.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE}`,
+    };
+  });
+  const selectedBattleTeamNames = battleTeamOptions
+    .filter((team) => selectedBattleTeamIds.includes(team.id))
+    .map((team) => team.name);
+  const canSave = Boolean(selectedPokemon);
+
+  useEffect(() => {
+    const availableBattleTeamIds = new Set(battleTeamOptions.map((team) => team.id));
+
+    setSelectedBattleTeamIds((current) => {
+      const nextBattleTeamIds = current.filter((teamId) => availableBattleTeamIds.has(teamId));
+      const hasChanged =
+        nextBattleTeamIds.length !== current.length ||
+        nextBattleTeamIds.some((teamId, index) => teamId !== current[index]);
+
+      return hasChanged ? nextBattleTeamIds : current;
+    });
+  }, [battleTeamOptions]);
 
   useEffect(() => {
     const nextSpValues = getEntrySpValues(initialEntry);
@@ -351,7 +392,8 @@ export default function TrainingStartView({
     setItemQuery(initialEntry?.itemName ?? "");
     setMoveQueries(getEntryMoveQueries(initialEntry));
     setSelectedNature(initialEntry?.natureName ?? "まじめ");
-    setSelectedBattleTeamId(findAssignedBattleTeamId(battleTeams, initialEntry) ?? "");
+    setSelectedBattleTeamIds(findAssignedBattleTeamIds(battleTeams, initialEntry));
+    setDraftBattleTeams([]);
     setNewBattleTeamName("");
     setSpValues(nextSpValues);
     setSpInputValues(createSpInputState(nextSpValues));
@@ -361,8 +403,10 @@ export default function TrainingStartView({
       getEntryMoveQueries(initialEntry).map((query) => findExactRecord(moveList, query)),
     );
     setIsNatureTableOpen(false);
+    setIsBattleTeamModalOpen(false);
     setDraggingSpStatKey(null);
     setAutoAdjustNotice("");
+    setBattleTeamNotice(null);
     setSaveNotice(null);
   }, [initialEntry?.id]);
 
@@ -386,13 +430,71 @@ export default function TrainingStartView({
     setIsNatureTableOpen(false);
   }
 
-  function handleBattleTeamChange(nextValue) {
+  function openBattleTeamModal() {
     setSaveNotice(null);
-    setSelectedBattleTeamId(nextValue);
+    setBattleTeamNotice(null);
+    setIsBattleTeamModalOpen(true);
+  }
 
-    if (nextValue !== NEW_BATTLE_TEAM_OPTION) {
-      setNewBattleTeamName("");
+  function closeBattleTeamModal() {
+    setBattleTeamNotice(null);
+    setIsBattleTeamModalOpen(false);
+  }
+
+  function toggleBattleTeamSelection(teamId) {
+    const targetTeam = battleTeamOptions.find((team) => team.id === teamId);
+    if (!targetTeam || targetTeam.isDisabled) {
+      return;
     }
+
+    setSaveNotice(null);
+    setBattleTeamNotice(null);
+    setSelectedBattleTeamIds((current) =>
+      current.includes(teamId)
+        ? current.filter((selectedTeamId) => selectedTeamId !== teamId)
+        : [...current, teamId],
+    );
+  }
+
+  function addBattleTeamSelection() {
+    if (!normalizedNewBattleTeamName) {
+      setBattleTeamNotice({
+        tone: "error",
+        message: "新規チーム名を入力してください。",
+      });
+      return;
+    }
+
+    const existingTeam = battleTeamOptions.find(
+      (team) => normalizeBattleTeamName(team.name) === normalizedNewBattleTeamName,
+    );
+
+    if (existingTeam) {
+      if (existingTeam.isDisabled) {
+        setBattleTeamNotice({
+          tone: "error",
+          message: `${existingTeam.name} は6匹です。`,
+        });
+        return;
+      }
+
+      setSelectedBattleTeamIds((current) =>
+        current.includes(existingTeam.id) ? current : [...current, existingTeam.id],
+      );
+      setNewBattleTeamName("");
+      setBattleTeamNotice(null);
+      return;
+    }
+
+    const draftTeam = {
+      id: createDraftBattleTeamId(),
+      name: normalizedNewBattleTeamName,
+    };
+
+    setDraftBattleTeams((current) => [...current, draftTeam]);
+    setSelectedBattleTeamIds((current) => [...current, draftTeam.id]);
+    setNewBattleTeamName("");
+    setBattleTeamNotice(null);
   }
 
   function getMaxAssignableSp(statKey, values = spValues) {
@@ -695,6 +797,13 @@ export default function TrainingStartView({
       ]),
     );
     const trimmedItemName = itemQuery.trim();
+    const selectedDraftBattleTeamIds = new Set(draftBattleTeams.map((team) => team.id));
+    const selectedExistingBattleTeamIds = selectedBattleTeamIds.filter(
+      (teamId) => !selectedDraftBattleTeamIds.has(teamId),
+    );
+    const selectedNewBattleTeamNames = draftBattleTeams
+      .filter((team) => selectedBattleTeamIds.includes(team.id))
+      .map((team) => team.name);
 
     const saveResult = onSave({
       id: initialEntry?.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -720,8 +829,8 @@ export default function TrainingStartView({
       ),
       spValues: { ...spValues },
       actualStats,
-      battleTeamId: selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? "" : selectedBattleTeamId,
-      newBattleTeamName: selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? newBattleTeamName : "",
+      battleTeamIds: selectedExistingBattleTeamIds,
+      newBattleTeamNames: selectedNewBattleTeamNames,
     });
 
     if (!saveResult?.ok) {
@@ -732,8 +841,11 @@ export default function TrainingStartView({
       return;
     }
 
-    setSelectedBattleTeamId(saveResult.battleTeamId ?? "");
+    setSelectedBattleTeamIds(saveResult.battleTeamIds ?? []);
+    setDraftBattleTeams([]);
     setNewBattleTeamName("");
+    setBattleTeamNotice(null);
+    setIsBattleTeamModalOpen(false);
     setSaveNotice({
       tone: "success",
       message: saveNoticeLabel,
@@ -823,46 +935,37 @@ export default function TrainingStartView({
           <div className="team-selection-stack">
             <div className="field">
               <span className="field__label">バトルチーム選択</span>
-              <select
-                className="field__input field__select"
-                value={selectedBattleTeamId}
-                onChange={(event) => handleBattleTeamChange(event.target.value)}
-              >
-                <option value="">未設定</option>
-                {battleTeams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {`${team.name} (${team.pokemonIds.length}/${MAX_BATTLE_TEAM_SIZE})`}
-                  </option>
-                ))}
-                <option value={NEW_BATTLE_TEAM_OPTION}>新規チームを作成</option>
-              </select>
+              <div className="team-selection-stack__controls">
+                <button className="ghost-button" type="button" onClick={openBattleTeamModal}>
+                  バトルチーム選択
+                </button>
+                <span className="team-selection-stack__summary">
+                  {selectedBattleTeamNames.length > 0
+                    ? `${selectedBattleTeamNames.length}チーム選択中`
+                    : "未選択"}
+                </span>
+              </div>
             </div>
 
-            {selectedBattleTeamId === NEW_BATTLE_TEAM_OPTION ? (
-              <label className="field">
-                <span className="field__label">新規チーム名</span>
-                <input
-                  className="field__input"
-                  type="text"
-                  value={newBattleTeamName}
-                  placeholder="例: シーズン1"
-                  onChange={(event) => {
-                    setSaveNotice(null);
-                    setNewBattleTeamName(event.target.value);
-                  }}
-                />
-              </label>
-            ) : null}
+            <div className="team-selection-chip-list">
+              {selectedBattleTeamNames.length > 0 ? (
+                selectedBattleTeamNames.map((teamName) => (
+                  <span key={teamName} className="team-selection-chip">
+                    {teamName}
+                  </span>
+                ))
+              ) : (
+                <span className="team-selection-chip team-selection-chip--empty">未選択</span>
+              )}
+            </div>
 
-            {battleTeamStatusMessage ? (
+            {battleTeamNotice ? (
               <p
                 className={`team-selection-note ${
-                  isBattleTeamNameRequired || isSelectedBattleTeamFull
-                    ? "team-selection-note--error"
-                    : ""
+                  battleTeamNotice.tone === "error" ? "team-selection-note--error" : ""
                 }`}
               >
-                {battleTeamStatusMessage}
+                {battleTeamNotice.message}
               </p>
             ) : null}
           </div>
@@ -1078,6 +1181,21 @@ export default function TrainingStartView({
           </div>
         </div>
       </section>
+
+      <BattleTeamSelectorModal
+        isOpen={isBattleTeamModalOpen}
+        teamOptions={battleTeamOptions}
+        newTeamName={newBattleTeamName}
+        notice={battleTeamNotice}
+        onClose={closeBattleTeamModal}
+        onToggleTeam={toggleBattleTeamSelection}
+        onNewTeamNameChange={(value) => {
+          setSaveNotice(null);
+          setBattleTeamNotice(null);
+          setNewBattleTeamName(value);
+        }}
+        onCreateTeam={addBattleTeamSelection}
+      />
 
       {isNatureTableOpen ? (
         <div

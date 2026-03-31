@@ -6,9 +6,10 @@ import TrainedPokemonView from "./components/TrainedPokemonView";
 import {
   MAX_BATTLE_TEAM_SIZE,
   createBattleTeamId,
-  findAssignedBattleTeamId,
+  findAssignedBattleTeamIds,
   findBattleTeamById,
   findBattleTeamByName,
+  getBattleTeamNamesByIds,
   normalizeBattleTeams,
   normalizeBattleTeamName,
 } from "./lib/battleTeams";
@@ -238,17 +239,27 @@ export default function App() {
   }
 
   function handleDeleteBattleTeam(teamId) {
-    setBattleTeams((current) => current.filter((team) => team.id !== teamId));
+    const remainingBattleTeams = battleTeams.filter((team) => team.id !== teamId);
+
+    setBattleTeams(remainingBattleTeams);
     setSavedPokemon((current) =>
-      current.map((entry) =>
-        entry.battleTeamId === teamId
-          ? {
-              ...entry,
-              battleTeamId: null,
-              battleTeamName: "",
-            }
-          : entry,
-      ),
+      current.map((entry) => {
+        const currentBattleTeamIds = findAssignedBattleTeamIds(battleTeams, entry);
+        const nextBattleTeamIds = currentBattleTeamIds.filter((assignedTeamId) => assignedTeamId !== teamId);
+
+        if (nextBattleTeamIds.length === currentBattleTeamIds.length) {
+          return entry;
+        }
+
+        const nextBattleTeamNames = getBattleTeamNamesByIds(remainingBattleTeams, nextBattleTeamIds);
+        return {
+          ...entry,
+          battleTeamIds: nextBattleTeamIds,
+          battleTeamNames: nextBattleTeamNames,
+          battleTeamId: nextBattleTeamIds[0] ?? null,
+          battleTeamName: nextBattleTeamNames[0] ?? "",
+        };
+      }),
     );
 
     if (viewingBattleTeamId === teamId) {
@@ -256,50 +267,67 @@ export default function App() {
     }
   }
 
-  function handleSavePokemon({ battleTeamId, newBattleTeamName, ...entry }) {
+  function handleSavePokemon({ battleTeamIds = [], newBattleTeamNames = [], ...entry }) {
     const existingEntry = savedPokemon.find((savedEntry) => savedEntry.id === entry.id) ?? null;
     const normalizedBattleTeams = normalizeBattleTeams(battleTeams);
-    const normalizedNewBattleTeamName = normalizeBattleTeamName(newBattleTeamName);
     let nextBattleTeams = normalizedBattleTeams;
-    let targetBattleTeamId = battleTeamId || null;
+    const selectedBattleTeamIds = new Set(
+      Array.isArray(battleTeamIds)
+        ? battleTeamIds.filter((teamId) => typeof teamId === "string" && teamId)
+        : [],
+    );
+    const normalizedNewBattleTeamNames = Array.isArray(newBattleTeamNames)
+      ? newBattleTeamNames
+          .map((teamName) => normalizeBattleTeamName(teamName))
+          .filter((teamName, index, teamNames) => teamName && teamNames.indexOf(teamName) === index)
+      : [];
 
-    if (normalizedNewBattleTeamName) {
-      const existingTeamByName = findBattleTeamByName(normalizedBattleTeams, normalizedNewBattleTeamName);
+    for (const teamName of normalizedNewBattleTeamNames) {
+      const existingTeamByName = findBattleTeamByName(nextBattleTeams, teamName);
 
       if (existingTeamByName) {
-        targetBattleTeamId = existingTeamByName.id;
-      } else {
-        const createdAt = new Date().toISOString();
-        const createdTeam = {
-          id: createBattleTeamId(),
-          name: normalizedNewBattleTeamName,
-          pokemonIds: [],
-          createdAt,
-          updatedAt: createdAt,
-        };
-
-        nextBattleTeams = [createdTeam, ...normalizedBattleTeams];
-        targetBattleTeamId = createdTeam.id;
+        selectedBattleTeamIds.add(existingTeamByName.id);
+        continue;
       }
+
+      const createdAt = new Date().toISOString();
+      const createdTeam = {
+        id: createBattleTeamId(),
+        name: teamName,
+        pokemonIds: [],
+        createdAt,
+        updatedAt: createdAt,
+      };
+
+      nextBattleTeams = [createdTeam, ...nextBattleTeams];
+      selectedBattleTeamIds.add(createdTeam.id);
     }
 
-    const previousBattleTeamId = findAssignedBattleTeamId(nextBattleTeams, existingEntry);
-    const targetBattleTeam = findBattleTeamById(nextBattleTeams, targetBattleTeamId);
-    const isAlreadyAssignedToTargetTeam =
-      targetBattleTeam?.pokemonIds.includes(entry.id) || previousBattleTeamId === targetBattleTeamId;
+    const previousBattleTeamIds = new Set(findAssignedBattleTeamIds(nextBattleTeams, existingEntry));
+    const overLimitTeams = nextBattleTeams.filter(
+      (team) =>
+        selectedBattleTeamIds.has(team.id) &&
+        !team.pokemonIds.includes(entry.id) &&
+        !previousBattleTeamIds.has(team.id) &&
+        team.pokemonIds.length >= MAX_BATTLE_TEAM_SIZE,
+    );
 
-    if (targetBattleTeam && !isAlreadyAssignedToTargetTeam && targetBattleTeam.pokemonIds.length >= MAX_BATTLE_TEAM_SIZE) {
+    if (overLimitTeams.length > 0) {
       return {
         ok: false,
-        message: "このバトルチームは6匹までです。",
+        message: `${overLimitTeams[0].name} は6匹です。`,
       };
     }
 
     const touchedAt = new Date().toISOString();
+    const normalizedSelectedBattleTeamIds = [...selectedBattleTeamIds];
+    const selectedBattleTeamNames = getBattleTeamNamesByIds(nextBattleTeams, normalizedSelectedBattleTeamIds);
     const nextSavedEntry = {
       ...entry,
-      battleTeamId: targetBattleTeam?.id ?? null,
-      battleTeamName: targetBattleTeam?.name ?? "",
+      battleTeamIds: normalizedSelectedBattleTeamIds,
+      battleTeamNames: selectedBattleTeamNames,
+      battleTeamId: normalizedSelectedBattleTeamIds[0] ?? null,
+      battleTeamName: selectedBattleTeamNames[0] ?? "",
     };
 
     setSavedPokemon((current) => {
@@ -317,8 +345,9 @@ export default function App() {
       nextBattleTeams.map((team) => {
         const previousPokemonIds = team.pokemonIds;
         const filteredPokemonIds = previousPokemonIds.filter((pokemonId) => pokemonId !== entry.id);
-        const nextPokemonIds =
-          team.id === targetBattleTeam?.id ? [...filteredPokemonIds, entry.id] : filteredPokemonIds;
+        const nextPokemonIds = selectedBattleTeamIds.has(team.id)
+          ? [...filteredPokemonIds, entry.id]
+          : filteredPokemonIds;
         const didChange =
           nextPokemonIds.length !== previousPokemonIds.length ||
           nextPokemonIds.some((pokemonId, index) => pokemonId !== previousPokemonIds[index]);
@@ -335,7 +364,7 @@ export default function App() {
 
     return {
       ok: true,
-      battleTeamId: targetBattleTeam?.id ?? null,
+      battleTeamIds: normalizedSelectedBattleTeamIds,
     };
   }
 

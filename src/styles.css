@@ -894,6 +894,41 @@ button {
   margin-bottom: 14px;
 }
 
+.team-selection-stack__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-selection-stack__summary {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.team-selection-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-selection-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(255, 226, 208, 0.78);
+  color: var(--accent-deep);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.team-selection-chip--empty {
+  background: rgba(93, 102, 118, 0.1);
+  color: var(--ink-soft);
+}
+
 .autocomplete {
   position: relative;
 }
@@ -1658,6 +1693,10 @@ button {
   padding: 24px;
 }
 
+.modal-window--team-selector {
+  width: min(760px, 100%);
+}
+
 .modal-window__header {
   display: flex;
   justify-content: space-between;
@@ -1670,6 +1709,76 @@ button {
   margin: 0;
   font-family: "M PLUS Rounded 1c", "Zen Kaku Gothic New", sans-serif;
   line-height: 1.15;
+}
+
+.team-selector-modal {
+  display: grid;
+  gap: 16px;
+}
+
+.team-selector-modal__list {
+  display: grid;
+  gap: 10px;
+  max-height: min(420px, calc(100vh - 280px));
+  overflow: auto;
+}
+
+.team-selector-modal__empty {
+  border: 1px dashed rgba(29, 36, 48, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 18px;
+  color: var(--ink-soft);
+}
+
+.team-selector-option {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(29, 36, 48, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 14px 16px;
+}
+
+.team-selector-option--selected {
+  border-color: rgba(230, 81, 46, 0.28);
+  background: rgba(255, 244, 236, 0.92);
+}
+
+.team-selector-option--disabled {
+  opacity: 0.55;
+}
+
+.team-selector-option input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.team-selector-option__body {
+  display: grid;
+  gap: 4px;
+}
+
+.team-selector-option__body strong {
+  font-size: 0.96rem;
+}
+
+.team-selector-option__body span {
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.team-selector-modal__footer {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+}
+
+.team-selector-modal__footer .field {
+  flex: 1 1 auto;
 }
 
 @media (max-width: 980px) {
@@ -1765,6 +1874,12 @@ button {
   }
 
   .modal-window__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .team-selection-stack__controls,
+  .team-selector-modal__footer {
     flex-direction: column;
     align-items: stretch;
   }

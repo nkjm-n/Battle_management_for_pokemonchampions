@@ -1,7 +1,7 @@
 import { getNatureMultiplier } from "./natures";
 
 export const DAMAGE_LEVEL = 50;
-export const DAMAGE_RANDOM_FACTORS = Array.from({ length: 16 }, (_, index) => 0.85 + index * 0.01);
+export const DAMAGE_RANDOM_FACTORS = Array.from({ length: 16 }, (_, index) => 85 + index);
 
 const TYPE_CHART = {
   ノーマル: { いわ: 0.5, ゴースト: 0, はがね: 0.5 },
@@ -28,6 +28,15 @@ const TYPE_CHART = {
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+function roundHalfDown(value) {
+  const flooredValue = Math.floor(value);
+  return value - flooredValue > 0.5 ? flooredValue + 1 : flooredValue;
+}
+
+function applyFixedPointModifier(value, modifier) {
+  return roundHalfDown((value * modifier) / 4096);
 }
 
 export function calculateConfiguredStatValue(pokemon, statKey, spValue, natureName) {
@@ -136,9 +145,13 @@ export function calculateDamageRange({
   const baseDamage =
     Math.floor(Math.floor((baseLevelFactor * move.power * attackValue) / defenseValue) / 50) + 2;
   const stabMultiplier = attackerPokemon.types.includes(move.type) ? 1.5 : 1;
-  const damageValues = DAMAGE_RANDOM_FACTORS.map((randomFactor) =>
-    Math.max(1, Math.floor(baseDamage * stabMultiplier * typeEffectiveness * randomFactor)),
-  );
+  const stabModifier = stabMultiplier === 1.5 ? 6144 : 4096;
+  const damageValues = DAMAGE_RANDOM_FACTORS.map((randomFactor) => {
+    const randomizedDamage = Math.floor((baseDamage * randomFactor) / 100);
+    const stabAdjustedDamage = applyFixedPointModifier(randomizedDamage, stabModifier);
+    const typeAdjustedDamage = Math.floor(stabAdjustedDamage * typeEffectiveness);
+    return Math.max(1, typeAdjustedDamage);
+  });
   const minDamage = Math.min(...damageValues);
   const maxDamage = Math.max(...damageValues);
   const defenderHp = Math.max(1, defenderStats.hp);

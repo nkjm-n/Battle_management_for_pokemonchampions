@@ -194,39 +194,28 @@ button {
 }
 
 .training-layout {
-  grid-template-columns: minmax(320px, 0.92fr) minmax(620px, 1.78fr);
-  grid-template-areas:
-    "primary merged"
-    "deal take";
-  align-items: stretch;
   gap: 14px;
 }
 
-.training-layout > * {
+.training-layout__top-row,
+.training-layout__bottom-row {
+  display: grid;
+  gap: 14px;
+}
+
+.training-layout__top-row {
+  grid-template-columns: minmax(320px, 0.92fr) minmax(620px, 1.78fr);
+  align-items: stretch;
+}
+
+.training-layout__bottom-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.training-layout__top-row > *,
+.training-layout__bottom-row > * {
   min-width: 0;
-}
-
-.training-layout__primary,
-.training-layout__merged,
-.training-layout__deal,
-.training-layout__take {
-  height: 100%;
-}
-
-.training-layout__primary {
-  grid-area: primary;
-}
-
-.training-layout__merged {
-  grid-area: merged;
-}
-
-.training-layout__deal {
-  grid-area: deal;
-}
-
-.training-layout__take {
-  grid-area: take;
 }
 
 .training-step {
@@ -234,7 +223,9 @@ button {
   overflow: visible;
 }
 
-.training-panel-main {
+.training-panel-main,
+.training-layout__deal,
+.training-layout__take {
   min-height: 100%;
 }
 
@@ -2044,7 +2035,8 @@ button {
 
 @media (max-width: 980px) {
   .hero,
-  .training-layout,
+  .training-layout__top-row,
+  .training-layout__bottom-row,
   .field-grid,
   .move-grid,
   .sp-grid,
@@ -2114,14 +2106,6 @@ button {
   .view-shell--training {
     min-height: auto;
     overflow: visible;
-  }
-
-  .training-layout {
-    grid-template-areas:
-      "primary"
-      "merged"
-      "deal"
-      "take";
   }
 
   .merged-stat-card__compact {

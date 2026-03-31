@@ -889,7 +889,8 @@ export default function TrainingStartView({
       </header>
 
       <section className="training-layout">
-        <div className="panel panel--strong training-step training-panel-main training-layout__primary">
+        <div className="training-layout__top-row">
+          <div className="panel panel--strong training-step training-panel-main training-layout__primary">
           <div className="field-grid field-grid--stack">
             <AutocompleteInput
               label="名前"
@@ -1019,8 +1020,8 @@ export default function TrainingStartView({
             />
           </label>
 
-        </div>
-        <div className="panel panel--soft training-step training-panel-main training-step--merged training-layout__merged">
+          </div>
+          <div className="panel panel--soft training-step training-panel-main training-step--merged training-layout__merged">
           <div className="move-grid">
             {moveQueries.map((moveQuery, index) => {
               const selectedMove = selectedMoves[index];
@@ -1188,24 +1189,27 @@ export default function TrainingStartView({
             </button>
             {autoAdjustNotice ? <p className="stat-card__notice">{autoAdjustNotice}</p> : null}
           </div>
+          </div>
         </div>
 
-        <DamageCalculatorPanel
-          className="training-layout__deal"
-          mode="deal"
-          title="与ダメージ計算"
-          sourcePokemon={selectedPokemon}
-          sourceActualStats={configuredActualStats}
-          sourceMoves={selectedMoves}
-        />
+        <div className="training-layout__bottom-row">
+          <DamageCalculatorPanel
+            className="training-layout__deal"
+            mode="deal"
+            title="与ダメージ計算"
+            sourcePokemon={selectedPokemon}
+            sourceActualStats={configuredActualStats}
+            sourceMoves={selectedMoves}
+          />
 
-        <DamageCalculatorPanel
-          className="training-layout__take"
-          mode="take"
-          title="被ダメージ計算"
-          sourcePokemon={selectedPokemon}
-          sourceActualStats={configuredActualStats}
-        />
+          <DamageCalculatorPanel
+            className="training-layout__take"
+            mode="take"
+            title="被ダメージ計算"
+            sourcePokemon={selectedPokemon}
+            sourceActualStats={configuredActualStats}
+          />
+        </div>
       </section>
 
       <BattleTeamSelectorModal

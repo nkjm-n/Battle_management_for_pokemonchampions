@@ -36,6 +36,56 @@ TYPE_NAME_MAP = {
     "stellar": "ステラ",
     "unknown": "不明",
 }
+OFFICIAL_MEGA_POKEMON_NAMES = {
+    "venusaur-mega",
+    "charizard-mega-x",
+    "charizard-mega-y",
+    "blastoise-mega",
+    "beedrill-mega",
+    "pidgeot-mega",
+    "alakazam-mega",
+    "slowbro-mega",
+    "gengar-mega",
+    "kangaskhan-mega",
+    "pinsir-mega",
+    "gyarados-mega",
+    "aerodactyl-mega",
+    "mewtwo-mega-x",
+    "mewtwo-mega-y",
+    "ampharos-mega",
+    "steelix-mega",
+    "scizor-mega",
+    "heracross-mega",
+    "houndoom-mega",
+    "tyranitar-mega",
+    "sceptile-mega",
+    "blaziken-mega",
+    "swampert-mega",
+    "gardevoir-mega",
+    "sableye-mega",
+    "mawile-mega",
+    "aggron-mega",
+    "medicham-mega",
+    "manectric-mega",
+    "sharpedo-mega",
+    "camerupt-mega",
+    "altaria-mega",
+    "banette-mega",
+    "absol-mega",
+    "glalie-mega",
+    "salamence-mega",
+    "metagross-mega",
+    "latias-mega",
+    "latios-mega",
+    "rayquaza-mega",
+    "lopunny-mega",
+    "garchomp-mega",
+    "lucario-mega",
+    "abomasnow-mega",
+    "gallade-mega",
+    "audino-mega",
+    "diancie-mega",
+}
 
 
 def build_session() -> requests.Session:
@@ -88,31 +138,66 @@ def fetch_species_count() -> int:
 
 def fetch_species(species_id: int) -> dict[str, Any]:
     payload = get_json(f"{API_BASE}/pokemon-species/{species_id}")
-    default_variety = next(variety for variety in payload["varieties"] if variety["is_default"])
     return {
         "id": payload["id"],
-        "name_ja": get_localized_name(payload["names"], language="ja"),
-        "default_pokemon_url": default_variety["pokemon"]["url"],
+        "base_name_ja": get_localized_name(payload["names"], language="ja"),
+        "varieties": [
+            {
+                "pokemon_name": variety["pokemon"]["name"],
+                "pokemon_url": variety["pokemon"]["url"],
+                "is_default": variety["is_default"],
+            }
+            for variety in payload["varieties"]
+        ],
     }
 
 
-def fetch_pokemon_types(species: dict[str, Any]) -> tuple[int, str, list[str]]:
-    payload = get_json(species["default_pokemon_url"])
+def should_include_variety(variety: dict[str, Any]) -> bool:
+    return variety["is_default"] or variety["pokemon_name"] in OFFICIAL_MEGA_POKEMON_NAMES
+
+
+def fetch_form_name(url: str) -> str:
+    payload = get_json(url)
+    localized_name = get_localized_name(payload.get("form_names", []), language="ja")
+    if not localized_name:
+        localized_name = get_localized_name(payload.get("form_names", []), language="ja-hrkt")
+    if not localized_name:
+        localized_name = get_localized_name(payload.get("names", []), language="ja")
+    return localized_name
+
+
+def fetch_pokemon_types(variety: dict[str, Any]) -> tuple[int, int, str, list[str]]:
+    payload = get_json(variety["pokemon_url"])
     type_names = [
         TYPE_NAME_MAP.get(type_entry["type"]["name"], type_entry["type"]["name"])
         for type_entry in sorted(payload["types"], key=lambda entry: entry["slot"])
     ]
-    return species["id"], species["name_ja"], type_names
+    if variety["is_default"]:
+        display_name = variety["base_name_ja"]
+    else:
+        form_url = payload["forms"][0]["url"] if payload["forms"] else ""
+        display_name = fetch_form_name(form_url) if form_url else variety["base_name_ja"]
+    return resource_id_from_url(payload["species"]["url"]), payload["id"], display_name, type_names
 
 
 def main() -> None:
     species_count = fetch_species_count()
     species_rows = parallel_map(list(range(1, species_count + 1)), fetch_species)
-    type_rows = parallel_map(species_rows, fetch_pokemon_types)
+    varieties = [
+        {
+            **variety,
+            "species_id": species["id"],
+            "base_name_ja": species["base_name_ja"],
+        }
+        for species in species_rows
+        for variety in species["varieties"]
+        if should_include_variety(variety)
+    ]
+    type_rows = parallel_map(varieties, fetch_pokemon_types)
 
     type_map = {
         name_ja: type_names
-        for _, name_ja, type_names in sorted(type_rows, key=lambda row: row[0])
+        for _, _, name_ja, type_names in sorted(type_rows, key=lambda row: (row[0], row[1]))
     }
 
     OUTPUT_PATH.write_text(

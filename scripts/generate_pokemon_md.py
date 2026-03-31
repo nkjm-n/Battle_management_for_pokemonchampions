@@ -21,6 +21,56 @@ MAX_WORKERS = 24
 ABILITY_EFFECT_SECTION_RE = re.compile(r"<h2>\s*特性の効果\s*</h2>\s*<p>(.*?)</p>", re.S)
 ABILITY_TITLE_RE = re.compile(r"<h1[^>]*>(.*?)</h1>", re.S)
 HTML_TAG_RE = re.compile(r"<[^>]+>")
+OFFICIAL_MEGA_POKEMON_NAMES = {
+    "venusaur-mega",
+    "charizard-mega-x",
+    "charizard-mega-y",
+    "blastoise-mega",
+    "beedrill-mega",
+    "pidgeot-mega",
+    "alakazam-mega",
+    "slowbro-mega",
+    "gengar-mega",
+    "kangaskhan-mega",
+    "pinsir-mega",
+    "gyarados-mega",
+    "aerodactyl-mega",
+    "mewtwo-mega-x",
+    "mewtwo-mega-y",
+    "ampharos-mega",
+    "steelix-mega",
+    "scizor-mega",
+    "heracross-mega",
+    "houndoom-mega",
+    "tyranitar-mega",
+    "sceptile-mega",
+    "blaziken-mega",
+    "swampert-mega",
+    "gardevoir-mega",
+    "sableye-mega",
+    "mawile-mega",
+    "aggron-mega",
+    "medicham-mega",
+    "manectric-mega",
+    "sharpedo-mega",
+    "camerupt-mega",
+    "altaria-mega",
+    "banette-mega",
+    "absol-mega",
+    "glalie-mega",
+    "salamence-mega",
+    "metagross-mega",
+    "latias-mega",
+    "latios-mega",
+    "rayquaza-mega",
+    "lopunny-mega",
+    "garchomp-mega",
+    "lucario-mega",
+    "abomasnow-mega",
+    "gallade-mega",
+    "audino-mega",
+    "diancie-mega",
+}
 
 
 def build_session() -> requests.Session:
@@ -122,20 +172,35 @@ def fetch_species_count() -> int:
 
 def fetch_species(species_id: int) -> dict[str, Any]:
     payload = get_json(f"{API_BASE}/pokemon-species/{species_id}")
-    default_variety = next(variety for variety in payload["varieties"] if variety["is_default"])
     return {
         "id": payload["id"],
-        "name_ja": get_localized_name(payload["names"], language="ja"),
-        "default_pokemon_url": default_variety["pokemon"]["url"],
+        "base_name_ja": get_localized_name(payload["names"], language="ja"),
+        "varieties": [
+            {
+                "pokemon_name": variety["pokemon"]["name"],
+                "pokemon_url": variety["pokemon"]["url"],
+                "is_default": variety["is_default"],
+            }
+            for variety in payload["varieties"]
+        ],
     }
 
 
-def fetch_pokemon(url: str) -> dict[str, Any]:
-    payload = get_json(url)
+def should_include_variety(variety: dict[str, Any]) -> bool:
+    return variety["is_default"] or variety["pokemon_name"] in OFFICIAL_MEGA_POKEMON_NAMES
+
+
+def fetch_pokemon(variety: dict[str, Any]) -> dict[str, Any]:
+    payload = get_json(variety["pokemon_url"])
     stats = {entry["stat"]["name"]: entry["base_stat"] for entry in payload["stats"]}
     abilities = sorted(payload["abilities"], key=lambda entry: entry["slot"])
     return {
+        "pokemon_id": payload["id"],
         "species_id": resource_id_from_url(payload["species"]["url"]),
+        "base_name_ja": variety["base_name_ja"],
+        "pokemon_name": variety["pokemon_name"],
+        "is_default": variety["is_default"],
+        "form_url": payload["forms"][0]["url"] if payload["forms"] else "",
         "stats": {
             "hp": stats["hp"],
             "attack": stats["attack"],
@@ -152,6 +217,19 @@ def fetch_pokemon(url: str) -> dict[str, Any]:
             }
             for entry in abilities
         ],
+    }
+
+
+def fetch_form_name(url: str) -> dict[str, str]:
+    payload = get_json(url)
+    localized_name = get_localized_name(payload.get("form_names", []), language="ja")
+    if not localized_name:
+        localized_name = get_localized_name(payload.get("form_names", []), language="ja-hrkt")
+    if not localized_name:
+        localized_name = get_localized_name(payload.get("names", []), language="ja")
+    return {
+        "name_ja": localized_name,
+        "is_mega": bool(payload.get("is_mega")),
     }
 
 
@@ -174,14 +252,16 @@ def parallel_map(ids: list[Any], fn) -> list[Any]:
 
 
 def render_rows(
-    species_rows: list[dict[str, Any]],
-    pokemon_by_species: dict[int, dict[str, Any]],
+    pokemon_rows: list[dict[str, Any]],
+    form_names_by_url: dict[str, dict[str, str]],
     abilities_by_url: dict[str, dict[str, str]],
 ) -> list[str]:
     lines: list[str] = []
 
-    for species in sorted(species_rows, key=lambda row: row["id"]):
-        pokemon = pokemon_by_species[species["id"]]
+    for pokemon in sorted(
+        pokemon_rows,
+        key=lambda row: (row["species_id"], 0 if row["is_default"] else 1, row["pokemon_id"]),
+    ):
         normal_abilities = []
         hidden_ability = None
 
@@ -201,9 +281,14 @@ def render_rows(
         hidden_name = escape_md_cell(hidden_ability["name"]) if hidden_ability else "なし"
         hidden_effect = escape_md_cell(hidden_ability["effect"]) if hidden_ability else "なし"
 
+        if pokemon["is_default"]:
+            display_name = pokemon["base_name_ja"]
+        else:
+            display_name = form_names_by_url.get(pokemon["form_url"], {}).get("name_ja") or pokemon["base_name_ja"]
+
         stats = pokemon["stats"]
         line = (
-            f"| {escape_md_cell(species['name_ja'])} | "
+            f"| {escape_md_cell(display_name)} | "
             f"{stats['hp']} | {stats['attack']} | {stats['defense']} | "
             f"{stats['special-attack']} | {stats['special-defense']} | {stats['speed']} | "
             f"{normal_names} | {normal_effects} | {hidden_name} | {hidden_effect} |"
@@ -216,9 +301,28 @@ def render_rows(
 def main() -> None:
     species_count = fetch_species_count()
     species_rows = parallel_map(list(range(1, species_count + 1)), fetch_species)
+    varieties = [
+        {
+            **variety,
+            "species_id": species["id"],
+            "base_name_ja": species["base_name_ja"],
+        }
+        for species in species_rows
+        for variety in species["varieties"]
+        if should_include_variety(variety)
+    ]
 
-    pokemon_rows = parallel_map([species["default_pokemon_url"] for species in species_rows], fetch_pokemon)
-    pokemon_by_species = {row["species_id"]: row for row in pokemon_rows}
+    pokemon_rows = parallel_map(varieties, fetch_pokemon)
+    form_urls = sorted(
+        {
+            pokemon["form_url"]
+            for pokemon in pokemon_rows
+            if pokemon["form_url"] and not pokemon["is_default"]
+        },
+        key=resource_id_from_url,
+    )
+    form_name_rows = parallel_map(form_urls, fetch_form_name)
+    form_names_by_url = dict(zip(form_urls, form_name_rows))
 
     ability_urls = sorted(
         {
@@ -235,14 +339,14 @@ def main() -> None:
         "# Pokemon Data",
         "",
         f"- 生成日: {dt.date.today().isoformat()}",
-        f"- 収録対象: 全国図鑑No.1〜{species_count}の基本種（各ポケモンのデフォルトフォルム）",
+        f"- 収録対象: 全国図鑑No.1〜{species_count}の基本種（各ポケモンのデフォルトフォルム）と公式メガシンカフォルム",
         "- データソース: PokeAPI の `pokemon-species`, `pokemon`, `ability` エンドポイント",
         "- 特性の効果: `ability.flavor_text_entries` の最新日本語説明を採用",
         "",
         "| ポケモンの名前 | HP | 攻撃 | 防御 | 特攻 | 特防 | すばやさ | 特性 | 特性の効果 | 夢特性 | 夢特性の効果 |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |",
     ]
-    lines.extend(render_rows(species_rows, pokemon_by_species, abilities_by_url))
+    lines.extend(render_rows(pokemon_rows, form_names_by_url, abilities_by_url))
     OUTPUT_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 

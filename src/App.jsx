@@ -166,9 +166,9 @@ export default function App() {
     <main className="app-shell">
       <section className="hero">
         <div className="hero__main">
-          <p className="hero__eyebrow">poke champ</p>
+          <p className="hero__eyebrow">バトルチーム管理 for pokemonchampions</p>
           <p className="hero__copy">
-            ポケモン育成の入口を3つに整理し、まずは実数値計算にすぐ入れるホーム画面を作りました。
+            現在：メガシンカ未実装
           </p>
         </div>
       </section>

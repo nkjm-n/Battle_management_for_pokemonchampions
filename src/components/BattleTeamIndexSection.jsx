@@ -199,9 +199,12 @@ export default function BattleTeamIndexSection({ entries }) {
         </div>
       </div>
 
-      <div className="battle-team-index__grid">
+      <div className="battle-team-index__grid battle-team-index__grid--firepower">
         <FirepowerCard title="最大物理火力指数" summary={summaries.physicalFirepower} />
         <FirepowerCard title="最大特殊火力指数" summary={summaries.specialFirepower} />
+      </div>
+
+      <div className="battle-team-index__grid battle-team-index__grid--durability">
         <DurabilityCard title="最大合計耐久指数" summary={summaries.totalDurability} valueKey="total" />
         <DurabilityCard title="最大物理耐久指数" summary={summaries.physicalDurability} valueKey="physical" />
         <DurabilityCard title="最大特殊耐久指数" summary={summaries.specialDurability} valueKey="special" />

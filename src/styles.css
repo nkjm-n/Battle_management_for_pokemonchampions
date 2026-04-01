@@ -960,8 +960,15 @@ button {
 
 .battle-team-index__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.battle-team-index__grid--firepower {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.battle-team-index__grid--durability {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .battle-team-index-card {
@@ -2507,7 +2514,8 @@ button {
     min-width: max(100%, 1260px);
   }
 
-  .battle-team-index__grid {
+  .battle-team-index__grid--firepower,
+  .battle-team-index__grid--durability {
     grid-template-columns: 1fr;
   }
 

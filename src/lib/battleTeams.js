@@ -75,6 +75,16 @@ export function findAssignedBattleTeamId(teams, entry) {
   return findAssignedBattleTeamIds(teams, entry)[0] ?? null;
 }
 
+export function getBattleTeamIdsByPokemonId(teams, pokemonId) {
+  if (!pokemonId) {
+    return [];
+  }
+
+  return normalizeBattleTeams(teams)
+    .filter((team) => team.pokemonIds.includes(pokemonId))
+    .map((team) => team.id);
+}
+
 export function getBattleTeamNamesByIds(teams, teamIds) {
   if (!Array.isArray(teamIds) || teamIds.length === 0) {
     return [];

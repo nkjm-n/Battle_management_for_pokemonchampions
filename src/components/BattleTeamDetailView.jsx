@@ -9,6 +9,7 @@ export default function BattleTeamDetailView({
   team,
   savedPokemon,
   onBack,
+  onReorderTeam,
   onEditPokemon,
   onRemovePokemon,
 }) {
@@ -44,6 +45,20 @@ export default function BattleTeamDetailView({
       </header>
 
       <section className="panel panel--soft">
+        <div className="battle-team-detail__panel-header">
+          <div className="section-heading">
+            <div>
+              <p className="section-heading__eyebrow">Party</p>
+              <h2>パーティ</h2>
+            </div>
+          </div>
+          {team ? (
+            <button className="ghost-button" type="button" onClick={onReorderTeam}>
+              ポケモン入れ替え
+            </button>
+          ) : null}
+        </div>
+
         {team ? (
           <div className="battle-team-detail__grid">
             {Array.from({ length: TEAM_SLOT_COUNT }, (_, index) => (

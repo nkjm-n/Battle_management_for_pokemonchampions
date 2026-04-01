@@ -1,5 +1,6 @@
 import { startTransition, useEffect, useState } from "react";
 import BattleTeamDetailView from "./components/BattleTeamDetailView";
+import BattleTeamReorderView from "./components/BattleTeamReorderView";
 import BattleTeamsView from "./components/BattleTeamsView";
 import TrainingStartView from "./components/TrainingStartView";
 import TrainedPokemonView from "./components/TrainedPokemonView";
@@ -7,8 +8,8 @@ import {
   MAX_BATTLE_TEAM_SIZE,
   createBattleTeamId,
   findAssignedBattleTeamIds,
-  findBattleTeamById,
   findBattleTeamByName,
+  getBattleTeamIdsByPokemonId,
   getBattleTeamNamesByIds,
   normalizeBattleTeams,
   normalizeBattleTeamName,
@@ -56,6 +57,14 @@ function parseHashRoute(hash) {
     };
   }
 
+  if (segments[0] === "teams" && segments[1] && segments[2] === "swap") {
+    return {
+      view: "teamReorder",
+      editingPokemonId: null,
+      viewingBattleTeamId: decodeURIComponent(segments[1]),
+    };
+  }
+
   if (segments[0] === "teams" && segments[1]) {
     return {
       view: "teamDetail",
@@ -88,6 +97,10 @@ function buildHashRoute({ view, editingPokemonId, viewingBattleTeamId }) {
     return `#/teams/${encodeURIComponent(viewingBattleTeamId)}`;
   }
 
+  if (view === "teamReorder" && viewingBattleTeamId) {
+    return `#/teams/${encodeURIComponent(viewingBattleTeamId)}/swap`;
+  }
+
   if (view === "teams") {
     return "#/teams";
   }
@@ -112,6 +125,23 @@ const homeCards = [
     tone: "teams",
   },
 ];
+
+function applyBattleTeamMembership(entries, teams) {
+  const normalizedTeams = normalizeBattleTeams(teams);
+
+  return entries.map((entry) => {
+    const nextBattleTeamIds = getBattleTeamIdsByPokemonId(normalizedTeams, entry.id);
+    const nextBattleTeamNames = getBattleTeamNamesByIds(normalizedTeams, nextBattleTeamIds);
+
+    return {
+      ...entry,
+      battleTeamIds: nextBattleTeamIds,
+      battleTeamNames: nextBattleTeamNames,
+      battleTeamId: nextBattleTeamIds[0] ?? null,
+      battleTeamName: nextBattleTeamNames[0] ?? "",
+    };
+  });
+}
 
 export default function App() {
   const initialRoute =
@@ -244,29 +274,15 @@ export default function App() {
     navigateTo({ view: "teamDetail", viewingBattleTeamId: teamId });
   }
 
+  function openBattleTeamReorder(teamId) {
+    navigateTo({ view: "teamReorder", viewingBattleTeamId: teamId });
+  }
+
   function handleDeleteBattleTeam(teamId) {
     const remainingBattleTeams = battleTeams.filter((team) => team.id !== teamId);
 
     setBattleTeams(remainingBattleTeams);
-    setSavedPokemon((current) =>
-      current.map((entry) => {
-        const currentBattleTeamIds = findAssignedBattleTeamIds(battleTeams, entry);
-        const nextBattleTeamIds = currentBattleTeamIds.filter((assignedTeamId) => assignedTeamId !== teamId);
-
-        if (nextBattleTeamIds.length === currentBattleTeamIds.length) {
-          return entry;
-        }
-
-        const nextBattleTeamNames = getBattleTeamNamesByIds(remainingBattleTeams, nextBattleTeamIds);
-        return {
-          ...entry,
-          battleTeamIds: nextBattleTeamIds,
-          battleTeamNames: nextBattleTeamNames,
-          battleTeamId: nextBattleTeamIds[0] ?? null,
-          battleTeamName: nextBattleTeamNames[0] ?? "",
-        };
-      }),
-    );
+    setSavedPokemon((current) => applyBattleTeamMembership(current, remainingBattleTeams));
 
     if (viewingBattleTeamId === teamId) {
       navigateTo({ view: "teams" });
@@ -407,23 +423,46 @@ export default function App() {
     });
 
     setBattleTeams(nextBattleTeams);
-    setSavedPokemon((current) =>
-      current.map((entry) => {
-        if (entry.id !== entryId) {
-          return entry;
-        }
+    setSavedPokemon((current) => applyBattleTeamMembership(current, nextBattleTeams));
+  }
 
-        const nextBattleTeamIds = findAssignedBattleTeamIds(nextBattleTeams, entry);
-        const nextBattleTeamNames = getBattleTeamNamesByIds(nextBattleTeams, nextBattleTeamIds);
-        return {
-          ...entry,
-          battleTeamIds: nextBattleTeamIds,
-          battleTeamNames: nextBattleTeamNames,
-          battleTeamId: nextBattleTeamIds[0] ?? null,
-          battleTeamName: nextBattleTeamNames[0] ?? "",
-        };
-      }),
+  function handleReorderBattleTeam(teamId, nextPokemonIds) {
+    const targetTeam = battleTeams.find((team) => team.id === teamId);
+    if (!targetTeam) {
+      return;
+    }
+
+    const validPokemonIdSet = new Set(savedPokemon.map((entry) => entry.id));
+    const normalizedPokemonIds = Array.isArray(nextPokemonIds)
+      ? nextPokemonIds.filter(
+          (pokemonId, index, pokemonIds) =>
+            typeof pokemonId === "string" &&
+            validPokemonIdSet.has(pokemonId) &&
+            pokemonIds.indexOf(pokemonId) === index,
+        )
+      : [];
+    const trimmedPokemonIds = normalizedPokemonIds.slice(0, MAX_BATTLE_TEAM_SIZE);
+    const hasChanged =
+      trimmedPokemonIds.length !== targetTeam.pokemonIds.length ||
+      trimmedPokemonIds.some((pokemonId, index) => pokemonId !== targetTeam.pokemonIds[index]);
+
+    if (!hasChanged) {
+      return;
+    }
+
+    const touchedAt = new Date().toISOString();
+    const nextBattleTeams = battleTeams.map((team) =>
+      team.id === teamId
+        ? {
+            ...team,
+            pokemonIds: trimmedPokemonIds,
+            updatedAt: touchedAt,
+          }
+        : team,
     );
+
+    setBattleTeams(nextBattleTeams);
+    setSavedPokemon((current) => applyBattleTeamMembership(current, nextBattleTeams));
   }
 
   const editingPokemon =
@@ -500,6 +539,9 @@ export default function App() {
         team={viewingBattleTeam}
         savedPokemon={savedPokemon}
         onBack={() => moveTo("teams")}
+        onReorderTeam={() =>
+          viewingBattleTeamId ? openBattleTeamReorder(viewingBattleTeamId) : undefined
+        }
         onEditPokemon={(entryId) =>
           openTrainingForEdit(entryId, {
             view: "teamDetail",
@@ -509,6 +551,19 @@ export default function App() {
         onRemovePokemon={(entryId) =>
           viewingBattleTeamId ? handleRemovePokemonFromBattleTeam(viewingBattleTeamId, entryId) : undefined
         }
+      />
+    );
+  }
+
+  if (activeView === "teamReorder") {
+    return (
+      <BattleTeamReorderView
+        team={viewingBattleTeam}
+        savedPokemon={savedPokemon}
+        onBack={() =>
+          viewingBattleTeamId ? openBattleTeamDetail(viewingBattleTeamId) : navigateTo({ view: "teams" })
+        }
+        onReorderTeam={handleReorderBattleTeam}
       />
     );
   }

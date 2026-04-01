@@ -1,21 +1,18 @@
 import { getMoveTypeClassName } from "../lib/moveTypeClass";
-import { getEntryDisplayName, getEntryTypes } from "../lib/pokemonEntryDisplay";
+import { getEntryTypes } from "../lib/pokemonEntryDisplay";
 import { POKEMON_TYPE_NAMES, getAttackStatKeyForMove, getTypeEffectivenessMultiplier } from "../lib/pokemonDamage";
 
-const MATCHUP_COLUMNS = [
+const DISPLAY_TYPE_NAMES = POKEMON_TYPE_NAMES.filter((typeName) => typeName !== "ステラ" && typeName !== "不明");
+
+const MATCHUP_ROWS = [
   { key: "super", label: "抜群", detail: "×2・×4" },
   { key: "normal", label: "通常", detail: "×1" },
   { key: "resisted", label: "いまいち", detail: "×1/2・×1/4" },
   { key: "none", label: "効果なし", detail: "×0" },
 ];
 
-function createEmptyBuckets() {
-  return {
-    super: [],
-    normal: [],
-    resisted: [],
-    none: [],
-  };
+function createCountMap() {
+  return Object.fromEntries(MATCHUP_ROWS.map((row) => [row.key, 0]));
 }
 
 function getMatchupBucketKey(multiplier) {
@@ -34,107 +31,50 @@ function getMatchupBucketKey(multiplier) {
   return "normal";
 }
 
-function formatMultiplier(multiplier) {
-  if (multiplier === 0) {
-    return "×0";
-  }
-
-  if (multiplier === 0.25) {
-    return "×1/4";
-  }
-
-  if (multiplier === 0.5) {
-    return "×1/2";
-  }
-
-  if (multiplier === 1) {
-    return "×1";
-  }
-
-  if (multiplier === 2) {
-    return "×2";
-  }
-
-  if (multiplier === 4) {
-    return "×4";
-  }
-
-  return `×${multiplier}`;
-}
-
-function buildOffensiveRows(entries) {
+function buildOffensiveMatrix(entries) {
   const attackingMoves = entries.flatMap((entry) =>
-    (entry.moves ?? [])
-      .map((move, index) => ({ move, index }))
-      .filter(({ move }) => move && getAttackStatKeyForMove(move))
-      .map((move) => ({
-        id: `${entry.id}-${move.index}-${move.move.name}`,
-        ownerName: getEntryDisplayName(entry),
-        moveName: move.move.name,
-        moveType: move.move.type,
-      })),
+    (entry.moves ?? []).filter((move) => move && getAttackStatKeyForMove(move)),
   );
+
+  const countsByType = Object.fromEntries(
+    DISPLAY_TYPE_NAMES.map((typeName) => [typeName, createCountMap()]),
+  );
+
+  attackingMoves.forEach((move) => {
+    DISPLAY_TYPE_NAMES.forEach((typeName) => {
+      const multiplier = getTypeEffectivenessMultiplier(move.type, [typeName]);
+      const bucketKey = getMatchupBucketKey(multiplier);
+      countsByType[typeName][bucketKey] += 1;
+    });
+  });
 
   return {
     hasData: attackingMoves.length > 0,
-    rows: POKEMON_TYPE_NAMES.map((typeName) => {
-      const buckets = createEmptyBuckets();
-
-      attackingMoves.forEach((moveEntry) => {
-        const multiplier = getTypeEffectivenessMultiplier(moveEntry.moveType, [typeName]);
-        const bucketKey = getMatchupBucketKey(multiplier);
-        buckets[bucketKey].push({
-          id: `${moveEntry.id}-${typeName}`,
-          primary: moveEntry.moveName,
-          secondary: moveEntry.ownerName,
-          multiplier: formatMultiplier(multiplier),
-        });
-      });
-
-      return {
-        typeName,
-        buckets,
-      };
-    }),
+    countsByType,
   };
 }
 
-function buildDefensiveRows(entries) {
+function buildDefensiveMatrix(entries) {
+  const countsByType = Object.fromEntries(
+    DISPLAY_TYPE_NAMES.map((typeName) => [typeName, createCountMap()]),
+  );
+
+  entries.forEach((entry) => {
+    const defenderTypes = getEntryTypes(entry);
+    DISPLAY_TYPE_NAMES.forEach((typeName) => {
+      const multiplier = getTypeEffectivenessMultiplier(typeName, defenderTypes);
+      const bucketKey = getMatchupBucketKey(multiplier);
+      countsByType[typeName][bucketKey] += 1;
+    });
+  });
+
   return {
     hasData: entries.length > 0,
-    rows: POKEMON_TYPE_NAMES.map((typeName) => {
-      const buckets = createEmptyBuckets();
-
-      entries.forEach((entry) => {
-        const multiplier = getTypeEffectivenessMultiplier(typeName, getEntryTypes(entry));
-        const bucketKey = getMatchupBucketKey(multiplier);
-        buckets[bucketKey].push({
-          id: `${entry.id}-${typeName}`,
-          primary: getEntryDisplayName(entry),
-          secondary: getEntryTypes(entry).join(" / ") || "—",
-          multiplier: formatMultiplier(multiplier),
-        });
-      });
-
-      return {
-        typeName,
-        buckets,
-      };
-    }),
+    countsByType,
   };
 }
 
-function MatchupChip({ item }) {
-  return (
-    <div className="battle-team-matchup-chip">
-      <strong>{item.primary}</strong>
-      <span>{item.secondary}</span>
-      <small>{item.multiplier}</small>
-    </div>
-  );
-}
-
-function MatchupTable({ title, description, rows, emptyMessage }) {
+function MatchupTable({ title, description, countLabel, countsByType, emptyMessage }) {
   return (
     <article className="battle-team-matchup-card">
       <div className="battle-team-matchup-card__header">
@@ -142,58 +82,51 @@ function MatchupTable({ title, description, rows, emptyMessage }) {
         <p>{description}</p>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="empty-box">{emptyMessage}</div>
-      ) : (
-        <div className="battle-team-matchup-table">
-          <div className="battle-team-matchup-table__head">
-            <div className="battle-team-matchup-table__type-heading">タイプ</div>
-            {MATCHUP_COLUMNS.map((column) => (
-              <div key={column.key} className="battle-team-matchup-table__column-heading">
-                <strong>{column.label}</strong>
-                <span>{column.detail}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="battle-team-matchup-table__body">
-            {rows.map((row) => (
-              <div key={row.typeName} className="battle-team-matchup-table__row">
-                <div className="battle-team-matchup-table__type-cell">
-                  <span className={`battle-team-matchup-type ${getMoveTypeClassName(row.typeName)}`.trim()}>
-                    {row.typeName}
-                  </span>
-                </div>
-
-                {MATCHUP_COLUMNS.map((column) => (
-                  <div
-                    key={`${row.typeName}-${column.key}`}
-                    className="battle-team-matchup-table__cell"
-                    data-label={`${column.label} ${column.detail}`}
-                  >
-                    {row.buckets[column.key].length > 0 ? (
-                      <div className="battle-team-matchup-table__chip-list">
-                        {row.buckets[column.key].map((item) => (
-                          <MatchupChip key={item.id} item={item} />
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="battle-team-matchup-table__empty">—</span>
-                    )}
-                  </div>
+      {countsByType ? (
+        <div className="battle-team-matchup-table-wrap">
+          <table className="battle-team-matchup-table">
+            <thead>
+              <tr>
+                <th className="battle-team-matchup-table__corner" scope="col">
+                  分類
+                </th>
+                {DISPLAY_TYPE_NAMES.map((typeName) => (
+                  <th key={typeName} className="battle-team-matchup-table__type-heading" scope="col">
+                    <span className={`battle-team-matchup-type ${getMoveTypeClassName(typeName)}`.trim()}>
+                      {typeName}
+                    </span>
+                  </th>
                 ))}
-              </div>
-            ))}
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {MATCHUP_ROWS.map((row) => (
+                <tr key={row.key}>
+                  <th className="battle-team-matchup-table__row-heading" scope="row">
+                    <strong>{row.label}</strong>
+                    <span>{row.detail}</span>
+                  </th>
+                  {DISPLAY_TYPE_NAMES.map((typeName) => (
+                    <td key={`${row.key}-${typeName}`} className="battle-team-matchup-table__count-cell">
+                      <strong>{countsByType[typeName][row.key]}</strong>
+                      <span>{countLabel}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      ) : (
+        <div className="empty-box">{emptyMessage}</div>
       )}
     </article>
   );
 }
 
 export default function BattleTeamMatchupSection({ entries }) {
-  const offensiveMatchups = buildOffensiveRows(entries);
-  const defensiveMatchups = buildDefensiveRows(entries);
+  const offensiveMatchups = buildOffensiveMatrix(entries);
+  const defensiveMatchups = buildDefensiveMatrix(entries);
 
   return (
     <section className="panel panel--soft battle-team-matchup">
@@ -207,14 +140,16 @@ export default function BattleTeamMatchupSection({ entries }) {
       <div className="battle-team-matchup__grid">
         <MatchupTable
           title="与ダメージ相性"
-          description="パーティ内の攻撃技が、各タイプの相手にどう通るかを分類しています。"
-          rows={offensiveMatchups.hasData ? offensiveMatchups.rows : []}
+          description="横軸はタイプです。各タイプの相手に対して、パーティ内の攻撃技がどの相性になるかを技数で集計しています。"
+          countLabel="技"
+          countsByType={offensiveMatchups.hasData ? offensiveMatchups.countsByType : null}
           emptyMessage="攻撃技が登録されていません。"
         />
         <MatchupTable
           title="被ダメージ相性"
-          description="各タイプの攻撃を受けたときに、パーティの誰が弱点・半減・無効かを分類しています。"
-          rows={defensiveMatchups.hasData ? defensiveMatchups.rows : []}
+          description="横軸はタイプです。各タイプの攻撃を受けたときに、パーティ内のポケモンがどの相性になるかを匹数で集計しています。"
+          countLabel="匹"
+          countsByType={defensiveMatchups.hasData ? defensiveMatchups.countsByType : null}
           emptyMessage="ポケモンが登録されていません。"
         />
       </div>

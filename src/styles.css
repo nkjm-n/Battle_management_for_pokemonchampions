@@ -955,7 +955,7 @@ button {
 
 .battle-team-matchup__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
@@ -987,69 +987,37 @@ button {
   line-height: 1.45;
 }
 
+.battle-team-matchup-table-wrap {
+  overflow-x: auto;
+}
+
 .battle-team-matchup-table {
-  display: grid;
-  gap: 10px;
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: separate;
+  border-spacing: 8px;
+  table-layout: fixed;
 }
 
-.battle-team-matchup-table__head,
-.battle-team-matchup-table__row {
-  display: grid;
-  grid-template-columns: 96px repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.battle-team-matchup-table__type-heading,
-.battle-team-matchup-table__column-heading,
-.battle-team-matchup-table__cell,
-.battle-team-matchup-table__type-cell {
+.battle-team-matchup-table__corner,
+.battle-team-matchup-table__row-heading,
+.battle-team-matchup-table__count-cell,
+.battle-team-matchup-table__type-heading {
   border-radius: 16px;
-  padding: 10px;
+  padding: 10px 8px;
 }
 
-.battle-team-matchup-table__type-heading,
-.battle-team-matchup-table__column-heading {
+.battle-team-matchup-table__corner {
+  width: 108px;
   background: rgba(31, 39, 53, 0.9);
   color: #f7f9fc;
-}
-
-.battle-team-matchup-table__type-heading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-}
-
-.battle-team-matchup-table__column-heading {
-  display: grid;
-  gap: 3px;
+  font-size: 0.82rem;
   text-align: center;
 }
 
-.battle-team-matchup-table__column-heading strong {
-  font-size: 0.84rem;
-}
-
-.battle-team-matchup-table__column-heading span {
-  color: rgba(247, 249, 252, 0.8);
-  font-size: 0.75rem;
-}
-
-.battle-team-matchup-table__body {
-  display: grid;
-  gap: 10px;
-}
-
-.battle-team-matchup-table__type-cell,
-.battle-team-matchup-table__cell {
-  border: 1px solid rgba(29, 36, 48, 0.08);
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.battle-team-matchup-table__type-cell {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
+.battle-team-matchup-table__type-heading {
+  background: rgba(31, 39, 53, 0.9);
+  text-align: center;
 }
 
 .battle-team-matchup-type {
@@ -1066,41 +1034,49 @@ button {
   font-weight: 800;
 }
 
-.battle-team-matchup-table__chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.battle-team-matchup-table__row-heading {
+  background: rgba(247, 249, 252, 0.94);
+  color: #1f2735;
+  text-align: left;
 }
 
-.battle-team-matchup-chip {
+.battle-team-matchup-table__row-heading strong,
+.battle-team-matchup-table__row-heading span {
   display: grid;
   gap: 2px;
-  min-width: 110px;
-  border-radius: 14px;
-  background: rgba(243, 247, 255, 0.96);
-  padding: 8px 10px;
 }
 
-.battle-team-matchup-chip strong {
-  font-size: 0.8rem;
-  color: #1f2735;
+.battle-team-matchup-table__row-heading strong {
+  font-size: 0.82rem;
 }
 
-.battle-team-matchup-chip span,
-.battle-team-matchup-chip small {
+.battle-team-matchup-table__row-heading span {
   color: var(--ink-soft);
   font-size: 0.72rem;
   line-height: 1.35;
 }
 
-.battle-team-matchup-chip small {
-  font-weight: 700;
+.battle-team-matchup-table__count-cell {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(29, 36, 48, 0.08);
+  text-align: center;
 }
 
-.battle-team-matchup-table__empty {
+.battle-team-matchup-table__count-cell strong,
+.battle-team-matchup-table__count-cell span {
+  display: block;
+}
+
+.battle-team-matchup-table__count-cell strong {
+  color: #1f2735;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.battle-team-matchup-table__count-cell span {
+  margin-top: 4px;
   color: var(--ink-soft);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: 0.7rem;
 }
 
 .trained-list {
@@ -2453,29 +2429,8 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .battle-team-matchup__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .battle-team-matchup-table__head {
-    display: none;
-  }
-
-  .battle-team-matchup-table__row {
-    grid-template-columns: 1fr;
-  }
-
-  .battle-team-matchup-table__type-cell {
-    justify-content: flex-start;
-  }
-
-  .battle-team-matchup-table__cell::before {
-    content: attr(data-label);
-    display: block;
-    margin-bottom: 8px;
-    color: var(--ink-soft);
-    font-size: 0.75rem;
-    font-weight: 700;
+  .battle-team-matchup-table {
+    min-width: 920px;
   }
 
   .stat-card__actions {

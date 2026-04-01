@@ -257,8 +257,11 @@ export default function App() {
     navigateTo({ view });
   }
 
-  function openTrainingForCreate() {
-    setTrainingBackRoute(defaultTrainingBackRoute);
+  function openTrainingForCreate(backRoute = defaultTrainingBackRoute) {
+    setTrainingBackRoute({
+      ...defaultTrainingBackRoute,
+      ...backRoute,
+    });
     navigateTo({ view: "training" });
   }
 
@@ -487,14 +490,16 @@ export default function App() {
   }
 
   if (activeView === "training") {
-    const resolvedTrainingBackRoute = editingPokemon
-      ? trainingBackRoute?.view
-        ? trainingBackRoute
-        : { view: "trained" }
-      : defaultTrainingBackRoute;
+    const resolvedTrainingBackRoute = trainingBackRoute?.view
+      ? trainingBackRoute
+      : editingPokemon
+        ? { view: "trained" }
+        : defaultTrainingBackRoute;
     const resolvedBackLabel =
       resolvedTrainingBackRoute.view === "teamDetail"
         ? "チーム詳細へ戻る"
+        : resolvedTrainingBackRoute.view === "teamReorder"
+          ? "入れ替え画面へ戻る"
         : editingPokemon
           ? "一覧へ戻る"
           : "ホームへ戻る";
@@ -562,6 +567,12 @@ export default function App() {
         savedPokemon={savedPokemon}
         onBack={() =>
           viewingBattleTeamId ? openBattleTeamDetail(viewingBattleTeamId) : navigateTo({ view: "teams" })
+        }
+        onCreatePokemon={() =>
+          openTrainingForCreate({
+            view: "teamReorder",
+            viewingBattleTeamId: viewingBattleTeamId ?? null,
+          })
         }
         onReorderTeam={handleReorderBattleTeam}
       />

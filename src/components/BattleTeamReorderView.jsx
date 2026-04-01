@@ -77,7 +77,13 @@ function TeamSwapCard({ entry, draggable = false, onDragStart, onDragEnd, isDrag
   );
 }
 
-export default function BattleTeamReorderView({ team, savedPokemon, onBack, onReorderTeam }) {
+export default function BattleTeamReorderView({
+  team,
+  savedPokemon,
+  onBack,
+  onCreatePokemon,
+  onReorderTeam,
+}) {
   const [dragging, setDragging] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
   const validEntryById = new Map(savedPokemon.map((entry) => [entry.id, entry]));
@@ -253,6 +259,9 @@ export default function BattleTeamReorderView({ team, savedPokemon, onBack, onRe
             <p className="section-heading__eyebrow">Reserve</p>
             <h2>育成済みポケモン</h2>
           </div>
+          <button className="ghost-button" type="button" onClick={onCreatePokemon}>
+            新規作成
+          </button>
         </div>
 
         <div className="battle-team-swap-reserve__hint">

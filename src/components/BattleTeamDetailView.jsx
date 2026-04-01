@@ -1,4 +1,5 @@
 import BattleTeamPokemonCard from "./BattleTeamPokemonCard";
+import BattleTeamIndexSection from "./BattleTeamIndexSection";
 import BattleTeamMatchupSection from "./BattleTeamMatchupSection";
 import { getEntryDisplayName } from "../lib/pokemonEntryDisplay";
 
@@ -60,6 +61,7 @@ export default function BattleTeamDetailView({
         )}
       </section>
 
+      {team ? <BattleTeamIndexSection entries={entries} /> : null}
       {team ? <BattleTeamMatchupSection entries={entries} /> : null}
     </div>
   );

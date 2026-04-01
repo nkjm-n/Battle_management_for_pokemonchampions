@@ -953,6 +953,55 @@ button {
   gap: 18px;
 }
 
+.battle-team-index {
+  display: grid;
+  gap: 18px;
+}
+
+.battle-team-index__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.battle-team-index-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(29, 36, 48, 0.08);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 252, 0.92)),
+    radial-gradient(circle at top right, rgba(230, 81, 46, 0.08), transparent 42%);
+  padding: 16px;
+}
+
+.battle-team-index-card__title {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.battle-team-index-card__value {
+  color: #1f2735;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.battle-team-index-card__meta {
+  display: grid;
+  gap: 4px;
+  color: #344055;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.battle-team-index-card__empty {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
 .battle-team-matchup__grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -2456,6 +2505,10 @@ button {
 
   .battle-team-matchup-table {
     min-width: max(100%, 1260px);
+  }
+
+  .battle-team-index__grid {
+    grid-template-columns: 1fr;
   }
 
   .stat-card__actions {

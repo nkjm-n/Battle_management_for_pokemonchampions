@@ -5,9 +5,11 @@ import { POKEMON_TYPE_NAMES, getAttackStatKeyForMove, getTypeEffectivenessMultip
 const DISPLAY_TYPE_NAMES = POKEMON_TYPE_NAMES.filter((typeName) => typeName !== "ステラ" && typeName !== "不明");
 
 const MATCHUP_ROWS = [
-  { key: "super", label: "抜群", detail: "×2・×4" },
+  { key: "super4", label: "抜群", detail: "×4" },
+  { key: "super2", label: "抜群", detail: "×2" },
   { key: "normal", label: "通常", detail: "×1" },
-  { key: "resisted", label: "いまいち", detail: "×1/2・×1/4" },
+  { key: "resisted2", label: "いまいち", detail: "×1/2" },
+  { key: "resisted4", label: "いまいち", detail: "×1/4" },
   { key: "none", label: "効果なし", detail: "×0" },
 ];
 
@@ -16,16 +18,24 @@ function createCountMap() {
 }
 
 function getMatchupBucketKey(multiplier) {
+  if (multiplier === 4) {
+    return "super4";
+  }
+
+  if (multiplier === 2) {
+    return "super2";
+  }
+
   if (multiplier === 0) {
     return "none";
   }
 
-  if (multiplier > 1) {
-    return "super";
+  if (multiplier === 0.25) {
+    return "resisted4";
   }
 
-  if (multiplier < 1) {
-    return "resisted";
+  if (multiplier === 0.5) {
+    return "resisted2";
   }
 
   return "normal";
@@ -74,7 +84,7 @@ function buildDefensiveMatrix(entries) {
   };
 }
 
-function MatchupTable({ title, description, countLabel, countsByType, emptyMessage }) {
+function MatchupTable({ title, description, countsByType, emptyMessage }) {
   return (
     <article className="battle-team-matchup-card">
       <div className="battle-team-matchup-card__header">
@@ -109,7 +119,6 @@ function MatchupTable({ title, description, countLabel, countsByType, emptyMessa
                   {DISPLAY_TYPE_NAMES.map((typeName) => (
                     <td key={`${row.key}-${typeName}`} className="battle-team-matchup-table__count-cell">
                       <strong>{countsByType[typeName][row.key]}</strong>
-                      <span>{countLabel}</span>
                     </td>
                   ))}
                 </tr>
@@ -141,14 +150,12 @@ export default function BattleTeamMatchupSection({ entries }) {
         <MatchupTable
           title="与ダメージ相性"
           description="横軸はタイプです。各タイプの相手に対して、パーティ内の攻撃技がどの相性になるかを技数で集計しています。"
-          countLabel="技"
           countsByType={offensiveMatchups.hasData ? offensiveMatchups.countsByType : null}
           emptyMessage="攻撃技が登録されていません。"
         />
         <MatchupTable
           title="被ダメージ相性"
           description="横軸はタイプです。各タイプの攻撃を受けたときに、パーティ内のポケモンがどの相性になるかを匹数で集計しています。"
-          countLabel="匹"
           countsByType={defensiveMatchups.hasData ? defensiveMatchups.countsByType : null}
           emptyMessage="ポケモンが登録されていません。"
         />

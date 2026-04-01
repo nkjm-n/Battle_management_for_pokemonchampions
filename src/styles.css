@@ -992,11 +992,12 @@ button {
 }
 
 .battle-team-matchup-table {
-  width: 100%;
-  min-width: 1080px;
+  width: max-content;
+  min-width: 100%;
+  min-width: max(100%, 1520px);
   border-collapse: separate;
   border-spacing: 8px;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .battle-team-matchup-table__corner,
@@ -1018,13 +1019,14 @@ button {
 .battle-team-matchup-table__type-heading {
   background: rgba(31, 39, 53, 0.9);
   text-align: center;
+  vertical-align: middle;
 }
 
 .battle-team-matchup-type {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
+  min-width: 76px;
   border: 1px solid var(--move-card-border, rgba(29, 36, 48, 0.1));
   border-radius: 999px;
   background: var(--move-card-bg, rgba(255, 255, 255, 0.95));
@@ -1032,6 +1034,7 @@ button {
   padding: 7px 12px;
   font-size: 0.84rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .battle-team-matchup-table__row-heading {
@@ -1060,23 +1063,14 @@ button {
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(29, 36, 48, 0.08);
   text-align: center;
-}
-
-.battle-team-matchup-table__count-cell strong,
-.battle-team-matchup-table__count-cell span {
-  display: block;
+  vertical-align: middle;
 }
 
 .battle-team-matchup-table__count-cell strong {
+  display: block;
   color: #1f2735;
   font-size: 1rem;
   line-height: 1.1;
-}
-
-.battle-team-matchup-table__count-cell span {
-  margin-top: 4px;
-  color: var(--ink-soft);
-  font-size: 0.7rem;
 }
 
 .trained-list {
@@ -2430,7 +2424,7 @@ button {
   }
 
   .battle-team-matchup-table {
-    min-width: 920px;
+    min-width: max(100%, 1260px);
   }
 
   .stat-card__actions {

@@ -111,7 +111,7 @@ function MatchupTable({ title, description, countsByType, emptyMessage }) {
             </thead>
             <tbody>
               {MATCHUP_ROWS.map((row) => (
-                <tr key={row.key}>
+                <tr key={row.key} className={`battle-team-matchup-table__row battle-team-matchup-table__row--${row.key}`}>
                   <th className="battle-team-matchup-table__row-heading" scope="row">
                     <strong>{row.label}</strong>
                     <span>{row.detail}</span>

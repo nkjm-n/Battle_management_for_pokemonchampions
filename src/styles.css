@@ -1017,7 +1017,8 @@ button {
 }
 
 .battle-team-matchup-table__type-heading {
-  background: rgba(31, 39, 53, 0.9);
+  background: var(--move-card-bg, rgba(255, 255, 255, 0.95));
+  border: 1px solid var(--move-card-border, rgba(29, 36, 48, 0.1));
   text-align: center;
   vertical-align: middle;
 }
@@ -1027,9 +1028,9 @@ button {
   align-items: center;
   justify-content: center;
   min-width: 76px;
-  border: 1px solid var(--move-card-border, rgba(29, 36, 48, 0.1));
-  border-radius: 999px;
-  background: var(--move-card-bg, rgba(255, 255, 255, 0.95));
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--move-card-accent, #304154);
   padding: 7px 12px;
   font-size: 0.84rem;

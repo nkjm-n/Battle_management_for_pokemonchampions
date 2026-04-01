@@ -38,6 +38,8 @@ const TYPE_CHART = {
   不明: {},
 };
 
+export const POKEMON_TYPE_NAMES = Object.freeze(Object.keys(TYPE_CHART));
+
 const TYPE_IMMUNITY_ABILITIES = {
   ふゆう: ["じめん"],
   ちくでん: ["でんき"],
@@ -100,7 +102,7 @@ function applyStatStage(value, stage) {
   return Math.floor((value * 2) / (2 - stage));
 }
 
-function getTypeEffectivenessMultiplier(moveType, defenderTypes = []) {
+export function getTypeEffectivenessMultiplier(moveType, defenderTypes = []) {
   if (!moveType || !Array.isArray(defenderTypes) || defenderTypes.length === 0) {
     return 1;
   }

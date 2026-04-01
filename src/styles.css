@@ -948,6 +948,161 @@ button {
   gap: 14px;
 }
 
+.battle-team-matchup {
+  display: grid;
+  gap: 18px;
+}
+
+.battle-team-matchup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.battle-team-matchup-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(29, 36, 48, 0.08);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 252, 0.92)),
+    radial-gradient(circle at top right, rgba(63, 120, 255, 0.08), transparent 42%);
+  padding: 16px;
+}
+
+.battle-team-matchup-card__header {
+  display: grid;
+  gap: 4px;
+}
+
+.battle-team-matchup-card__header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.battle-team-matchup-card__header p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.battle-team-matchup-table {
+  display: grid;
+  gap: 10px;
+}
+
+.battle-team-matchup-table__head,
+.battle-team-matchup-table__row {
+  display: grid;
+  grid-template-columns: 96px repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.battle-team-matchup-table__type-heading,
+.battle-team-matchup-table__column-heading,
+.battle-team-matchup-table__cell,
+.battle-team-matchup-table__type-cell {
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.battle-team-matchup-table__type-heading,
+.battle-team-matchup-table__column-heading {
+  background: rgba(31, 39, 53, 0.9);
+  color: #f7f9fc;
+}
+
+.battle-team-matchup-table__type-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.battle-team-matchup-table__column-heading {
+  display: grid;
+  gap: 3px;
+  text-align: center;
+}
+
+.battle-team-matchup-table__column-heading strong {
+  font-size: 0.84rem;
+}
+
+.battle-team-matchup-table__column-heading span {
+  color: rgba(247, 249, 252, 0.8);
+  font-size: 0.75rem;
+}
+
+.battle-team-matchup-table__body {
+  display: grid;
+  gap: 10px;
+}
+
+.battle-team-matchup-table__type-cell,
+.battle-team-matchup-table__cell {
+  border: 1px solid rgba(29, 36, 48, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.battle-team-matchup-table__type-cell {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.battle-team-matchup-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  border: 1px solid var(--move-card-border, rgba(29, 36, 48, 0.1));
+  border-radius: 999px;
+  background: var(--move-card-bg, rgba(255, 255, 255, 0.95));
+  color: var(--move-card-accent, #304154);
+  padding: 7px 12px;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.battle-team-matchup-table__chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.battle-team-matchup-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 110px;
+  border-radius: 14px;
+  background: rgba(243, 247, 255, 0.96);
+  padding: 8px 10px;
+}
+
+.battle-team-matchup-chip strong {
+  font-size: 0.8rem;
+  color: #1f2735;
+}
+
+.battle-team-matchup-chip span,
+.battle-team-matchup-chip small {
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.battle-team-matchup-chip small {
+  font-weight: 700;
+}
+
+.battle-team-matchup-table__empty {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .trained-list {
   display: grid;
   gap: 14px;
@@ -2296,6 +2451,31 @@ button {
 
   .battle-team-detail__grid {
     grid-template-columns: 1fr;
+  }
+
+  .battle-team-matchup__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-team-matchup-table__head {
+    display: none;
+  }
+
+  .battle-team-matchup-table__row {
+    grid-template-columns: 1fr;
+  }
+
+  .battle-team-matchup-table__type-cell {
+    justify-content: flex-start;
+  }
+
+  .battle-team-matchup-table__cell::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 8px;
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 700;
   }
 
   .stat-card__actions {

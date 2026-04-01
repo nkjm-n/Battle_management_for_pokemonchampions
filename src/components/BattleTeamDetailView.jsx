@@ -1,4 +1,5 @@
 import BattleTeamPokemonCard from "./BattleTeamPokemonCard";
+import BattleTeamMatchupSection from "./BattleTeamMatchupSection";
 import { getEntryDisplayName } from "../lib/pokemonEntryDisplay";
 
 const TEAM_SLOT_COUNT = 6;
@@ -58,6 +59,8 @@ export default function BattleTeamDetailView({
           <div className="empty-box">選択されたバトルチームが見つかりませんでした。</div>
         )}
       </section>
+
+      {team ? <BattleTeamMatchupSection entries={entries} /> : null}
     </div>
   );
 }

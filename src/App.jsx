@@ -26,6 +26,12 @@ const defaultRouteState = {
   viewingBattleTeamId: null,
 };
 
+const defaultTrainingBackRoute = {
+  view: "home",
+  editingPokemonId: null,
+  viewingBattleTeamId: null,
+};
+
 function parseHashRoute(hash) {
   const normalizedHash = String(hash ?? "").replace(/^#/, "");
   const segments = normalizedHash.split("/").filter(Boolean);
@@ -116,6 +122,7 @@ export default function App() {
   const [isStorageReady, setIsStorageReady] = useState(false);
   const [editingPokemonId, setEditingPokemonId] = useState(initialRoute.editingPokemonId);
   const [viewingBattleTeamId, setViewingBattleTeamId] = useState(initialRoute.viewingBattleTeamId);
+  const [trainingBackRoute, setTrainingBackRoute] = useState(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -221,10 +228,15 @@ export default function App() {
   }
 
   function openTrainingForCreate() {
+    setTrainingBackRoute(defaultTrainingBackRoute);
     navigateTo({ view: "training" });
   }
 
-  function openTrainingForEdit(entryId) {
+  function openTrainingForEdit(entryId, backRoute = { view: "trained" }) {
+    setTrainingBackRoute({
+      ...defaultTrainingBackRoute,
+      ...backRoute,
+    });
     navigateTo({ view: "training", editingPokemonId: entryId });
   }
 
@@ -380,6 +392,40 @@ export default function App() {
     );
   }
 
+  function handleRemovePokemonFromBattleTeam(teamId, entryId) {
+    const touchedAt = new Date().toISOString();
+    const nextBattleTeams = battleTeams.map((team) => {
+      if (team.id !== teamId || !team.pokemonIds?.includes(entryId)) {
+        return team;
+      }
+
+      return {
+        ...team,
+        pokemonIds: team.pokemonIds.filter((pokemonId) => pokemonId !== entryId),
+        updatedAt: touchedAt,
+      };
+    });
+
+    setBattleTeams(nextBattleTeams);
+    setSavedPokemon((current) =>
+      current.map((entry) => {
+        if (entry.id !== entryId) {
+          return entry;
+        }
+
+        const nextBattleTeamIds = findAssignedBattleTeamIds(nextBattleTeams, entry);
+        const nextBattleTeamNames = getBattleTeamNamesByIds(nextBattleTeams, nextBattleTeamIds);
+        return {
+          ...entry,
+          battleTeamIds: nextBattleTeamIds,
+          battleTeamNames: nextBattleTeamNames,
+          battleTeamId: nextBattleTeamIds[0] ?? null,
+          battleTeamName: nextBattleTeamNames[0] ?? "",
+        };
+      }),
+    );
+  }
+
   const editingPokemon =
     editingPokemonId == null
       ? null
@@ -402,12 +448,24 @@ export default function App() {
   }
 
   if (activeView === "training") {
+    const resolvedTrainingBackRoute = editingPokemon
+      ? trainingBackRoute?.view
+        ? trainingBackRoute
+        : { view: "trained" }
+      : defaultTrainingBackRoute;
+    const resolvedBackLabel =
+      resolvedTrainingBackRoute.view === "teamDetail"
+        ? "チーム詳細へ戻る"
+        : editingPokemon
+          ? "一覧へ戻る"
+          : "ホームへ戻る";
+
     return (
       <TrainingStartView
         battleTeams={battleTeams}
         initialEntry={editingPokemon}
-        backLabel={editingPokemon ? "一覧へ戻る" : "ホームへ戻る"}
-        onBack={() => moveTo(editingPokemon ? "trained" : "home")}
+        backLabel={resolvedBackLabel}
+        onBack={() => navigateTo(resolvedTrainingBackRoute)}
         onSave={handleSavePokemon}
       />
     );
@@ -418,7 +476,7 @@ export default function App() {
       <TrainedPokemonView
         savedPokemon={savedPokemon}
         onBack={() => moveTo("home")}
-        onEdit={openTrainingForEdit}
+        onEdit={(entryId) => openTrainingForEdit(entryId, { view: "trained" })}
         onDelete={handleDeletePokemon}
       />
     );
@@ -442,6 +500,15 @@ export default function App() {
         team={viewingBattleTeam}
         savedPokemon={savedPokemon}
         onBack={() => moveTo("teams")}
+        onEditPokemon={(entryId) =>
+          openTrainingForEdit(entryId, {
+            view: "teamDetail",
+            viewingBattleTeamId: viewingBattleTeamId ?? null,
+          })
+        }
+        onRemovePokemon={(entryId) =>
+          viewingBattleTeamId ? handleRemovePokemonFromBattleTeam(viewingBattleTeamId, entryId) : undefined
+        }
       />
     );
   }

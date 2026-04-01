@@ -12,7 +12,7 @@ function BattleTeamMoveTile({ move }) {
   );
 }
 
-export default function BattleTeamPokemonCard({ entry, variant = "compact" }) {
+export default function BattleTeamPokemonCard({ entry, variant = "compact", onEdit, onDelete }) {
   const moves = Array.from({ length: MOVE_SLOT_COUNT }, (_, index) => entry?.moves?.[index] ?? null);
 
   if (!entry) {
@@ -28,7 +28,27 @@ export default function BattleTeamPokemonCard({ entry, variant = "compact" }) {
   return (
     <article className={`battle-team-pokemon-card battle-team-pokemon-card--${variant}`}>
       <div className="battle-team-pokemon-card__summary">
-        <h3 className="battle-team-pokemon-card__name">{getEntryDisplayName(entry)}</h3>
+        <div className="battle-team-pokemon-card__header">
+          <h3 className="battle-team-pokemon-card__name">{getEntryDisplayName(entry)}</h3>
+          {variant === "detail" ? (
+            <div className="battle-team-pokemon-card__actions">
+              <button
+                className="ghost-button battle-team-pokemon-card__action-button"
+                type="button"
+                onClick={onEdit}
+              >
+                編集
+              </button>
+              <button
+                className="battle-team-pokemon-card__delete-button"
+                type="button"
+                onClick={onDelete}
+              >
+                削除
+              </button>
+            </div>
+          ) : null}
+        </div>
         <p className="battle-team-pokemon-card__meta">タイプ: {getEntryTypeText(entry)}</p>
         <p className="battle-team-pokemon-card__meta">特性: {entry.abilityName || "—"}</p>
         <p className="battle-team-pokemon-card__meta">持ち物: {entry.itemName || "—"}</p>

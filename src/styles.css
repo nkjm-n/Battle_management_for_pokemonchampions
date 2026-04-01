@@ -815,11 +815,56 @@ button {
   gap: 6px;
 }
 
+.battle-team-pokemon-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .battle-team-pokemon-card__name {
   margin: 0;
   font-family: "M PLUS Rounded 1c", "Zen Kaku Gothic New", sans-serif;
   font-size: 1rem;
   line-height: 1.25;
+}
+
+.battle-team-pokemon-card__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.battle-team-pokemon-card__action-button {
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+}
+
+.battle-team-pokemon-card__delete-button {
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 1px solid rgba(207, 58, 36, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 240, 236, 0.92);
+  color: #c53f2f;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.battle-team-pokemon-card__delete-button:hover {
+  border-color: rgba(207, 58, 36, 0.34);
+  background: rgba(255, 228, 221, 0.96);
+  color: #af2f21;
+  transform: translateY(-1px);
 }
 
 .battle-team-pokemon-card__meta {

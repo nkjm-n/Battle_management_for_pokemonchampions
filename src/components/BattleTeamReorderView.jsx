@@ -1,8 +1,18 @@
 import { useState } from "react";
 import { MAX_BATTLE_TEAM_SIZE } from "../lib/battleTeams";
+import { getPokemonRecordByName } from "../lib/data";
 import { getEntryDisplayName, getEntryTypeText } from "../lib/pokemonEntryDisplay";
+import { buildActualStats } from "../lib/pokemonDamage";
 
 const DRAG_TYPE = "application/x-battle-team-pokemon";
+const SWAP_STAT_ROWS = [
+  { key: "hp", label: "HP" },
+  { key: "attack", label: "攻撃" },
+  { key: "defense", label: "防御" },
+  { key: "specialAttack", label: "特攻" },
+  { key: "specialDefense", label: "特防" },
+  { key: "speed", label: "すばやさ" },
+];
 
 function buildTeamSlots(pokemonIds) {
   return Array.from({ length: MAX_BATTLE_TEAM_SIZE }, (_, index) => pokemonIds[index] ?? null);
@@ -26,10 +36,24 @@ function movePokemonToSlot(currentPokemonIds, entryId, slotIndex, sourceIndex) {
   return nextSlots.filter(Boolean);
 }
 
+function getResolvedActualStats(entry) {
+  if (
+    entry?.actualStats &&
+    SWAP_STAT_ROWS.every(({ key }) => Number.isFinite(entry.actualStats[key]))
+  ) {
+    return entry.actualStats;
+  }
+
+  const pokemon = getPokemonRecordByName(entry?.pokemonName);
+  return buildActualStats(pokemon, entry?.spValues ?? {}, entry?.natureName ?? "まじめ");
+}
+
 function TeamSwapCard({ entry, draggable = false, onDragStart, onDragEnd, isDragging = false }) {
   if (!entry) {
     return null;
   }
+
+  const actualStats = getResolvedActualStats(entry);
 
   return (
     <article
@@ -41,6 +65,14 @@ function TeamSwapCard({ entry, draggable = false, onDragStart, onDragEnd, isDrag
       <strong className="battle-team-swap-card__name">{getEntryDisplayName(entry)}</strong>
       <span className="battle-team-swap-card__meta">タイプ: {getEntryTypeText(entry)}</span>
       <span className="battle-team-swap-card__meta">持ち物: {entry.itemName || "—"}</span>
+      <span className="battle-team-swap-card__meta">性格: {entry.natureName || "—"}</span>
+      <div className="battle-team-swap-card__stats">
+        {SWAP_STAT_ROWS.map(({ key, label }) => (
+          <span key={key} className="battle-team-swap-card__stat-line">
+            {label}:{actualStats?.[key] ?? "—"}({entry?.spValues?.[key] ?? 0})
+          </span>
+        ))}
+      </div>
     </article>
   );
 }

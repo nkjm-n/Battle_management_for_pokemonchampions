@@ -973,13 +973,24 @@ button {
 
 .battle-team-index-card {
   display: grid;
-  gap: 10px;
   border: 1px solid rgba(29, 36, 48, 0.08);
   border-radius: 22px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 252, 0.92)),
-    radial-gradient(circle at top right, rgba(230, 81, 46, 0.08), transparent 42%);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 252, 0.92)),
+      radial-gradient(circle at top right, rgba(230, 81, 46, 0.08), transparent 42%);
   padding: 16px;
+}
+
+.battle-team-index-card__body {
+  display: grid;
+  grid-template-columns: minmax(132px, 164px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.battle-team-index-card__metric {
+  display: grid;
+  gap: 8px;
 }
 
 .battle-team-index-card__title {
@@ -2517,6 +2528,11 @@ button {
   .battle-team-index__grid--firepower,
   .battle-team-index__grid--durability {
     grid-template-columns: 1fr;
+  }
+
+  .battle-team-index-card__body {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .stat-card__actions {

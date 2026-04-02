@@ -968,6 +968,7 @@ button {
 .battle-team-swap-summary__panel {
   display: grid;
   gap: 14px;
+  align-content: start;
   border: 1px solid rgba(29, 36, 48, 0.08);
   border-radius: 22px;
   background:
@@ -1087,6 +1088,7 @@ button {
   color: #344055;
   font-size: 0.78rem;
   line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .battle-team-detail__grid {

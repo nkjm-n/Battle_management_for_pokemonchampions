@@ -32,8 +32,18 @@ const COMPACT_MATCHUP_ROWS = [
 ];
 
 const INDEX_ITEMS = [
-  { key: "physicalFirepower", title: "物理火力指数", valueKey: "value", detail: (summary) => `わざ: ${summary.move.name}` },
-  { key: "specialFirepower", title: "特殊火力指数", valueKey: "value", detail: (summary) => `わざ: ${summary.move.name}` },
+  {
+    key: "physicalFirepower",
+    title: "物理火力指数",
+    valueKey: "value",
+    detail: (summary) => `${getEntryDisplayName(summary.entry)}\nわざ: ${summary.move.name}`,
+  },
+  {
+    key: "specialFirepower",
+    title: "特殊火力指数",
+    valueKey: "value",
+    detail: (summary) => `${getEntryDisplayName(summary.entry)}\nわざ: ${summary.move.name}`,
+  },
   { key: "totalDurability", title: "合計耐久指数", valueKey: "total", detail: (summary) => getEntryDisplayName(summary.entry) },
   { key: "physicalDurability", title: "物理耐久指数", valueKey: "physical", detail: (summary) => getEntryDisplayName(summary.entry) },
   { key: "specialDurability", title: "特殊耐久指数", valueKey: "special", detail: (summary) => getEntryDisplayName(summary.entry) },

@@ -986,13 +986,6 @@ button {
   font-size: 1rem;
 }
 
-.battle-team-swap-summary__panel-header p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.84rem;
-  line-height: 1.45;
-}
-
 .battle-team-swap-summary__matchups {
   display: grid;
   gap: 10px;
@@ -1052,10 +1045,19 @@ button {
   line-height: 1.45;
 }
 
-.battle-team-swap-summary__index-grid {
+.battle-team-swap-summary__index-layout {
+  display: grid;
+  gap: 10px;
+}
+
+.battle-team-swap-summary__index-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.battle-team-swap-summary__index-row--single {
+  grid-template-columns: 1fr;
 }
 
 .battle-team-swap-summary__index-card {
@@ -2791,7 +2793,7 @@ button {
     gap: 8px;
   }
 
-  .battle-team-swap-summary__index-grid {
+  .battle-team-swap-summary__index-row {
     grid-template-columns: 1fr;
   }
 

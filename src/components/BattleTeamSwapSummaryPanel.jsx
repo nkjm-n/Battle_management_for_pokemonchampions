@@ -32,11 +32,11 @@ const COMPACT_MATCHUP_ROWS = [
 ];
 
 const INDEX_ITEMS = [
-  { key: "physicalFirepower", title: "物理火力", valueKey: "value", detail: (summary) => `わざ: ${summary.move.name}` },
-  { key: "specialFirepower", title: "特殊火力", valueKey: "value", detail: (summary) => `わざ: ${summary.move.name}` },
-  { key: "totalDurability", title: "合計耐久", valueKey: "total", detail: (summary) => getEntryDisplayName(summary.entry) },
-  { key: "physicalDurability", title: "物理耐久", valueKey: "physical", detail: (summary) => getEntryDisplayName(summary.entry) },
-  { key: "specialDurability", title: "特殊耐久", valueKey: "special", detail: (summary) => getEntryDisplayName(summary.entry) },
+  { key: "physicalFirepower", title: "物理火力指数", valueKey: "value", detail: (summary) => `わざ: ${summary.move.name}` },
+  { key: "specialFirepower", title: "特殊火力指数", valueKey: "value", detail: (summary) => `わざ: ${summary.move.name}` },
+  { key: "totalDurability", title: "合計耐久指数", valueKey: "total", detail: (summary) => getEntryDisplayName(summary.entry) },
+  { key: "physicalDurability", title: "物理耐久指数", valueKey: "physical", detail: (summary) => getEntryDisplayName(summary.entry) },
+  { key: "specialDurability", title: "特殊耐久指数", valueKey: "special", detail: (summary) => getEntryDisplayName(summary.entry) },
 ];
 
 function MatchupTypeBadge({ typeName, count }) {
@@ -101,18 +101,10 @@ export default function BattleTeamSwapSummaryPanel({ entries }) {
 
   return (
     <section className="panel panel--soft battle-team-swap-summary">
-      <div className="section-heading">
-        <div>
-          <p className="section-heading__eyebrow">Overview</p>
-          <h2>パーティ簡易サマリー</h2>
-        </div>
-      </div>
-
       <div className="battle-team-swap-summary__layout">
         <article className="battle-team-swap-summary__panel">
           <div className="battle-team-swap-summary__panel-header">
-            <h3>タイプ相性表の簡易版</h3>
-            <p>現パーティの攻撃範囲と受け相性を簡易表示しています。</p>
+            <h3>タイプ相性表</h3>
           </div>
 
           {entries.length > 0 ? (
@@ -129,19 +121,40 @@ export default function BattleTeamSwapSummaryPanel({ entries }) {
         <article className="battle-team-swap-summary__panel">
           <div className="battle-team-swap-summary__panel-header">
             <h3>指数</h3>
-            <p>火力と耐久の最大値をリアルタイムで更新します。</p>
           </div>
 
-          <div className="battle-team-swap-summary__index-grid">
-            {INDEX_ITEMS.map((item) => (
+          <div className="battle-team-swap-summary__index-layout">
+            <div className="battle-team-swap-summary__index-row">
+              {INDEX_ITEMS.slice(0, 2).map((item) => (
+                <CompactIndexCard
+                  key={item.key}
+                  title={item.title}
+                  summary={indexSummaries[item.key]}
+                  valueKey={item.valueKey}
+                  detail={item.detail}
+                />
+              ))}
+            </div>
+            <div className="battle-team-swap-summary__index-row battle-team-swap-summary__index-row--single">
               <CompactIndexCard
-                key={item.key}
-                title={item.title}
-                summary={indexSummaries[item.key]}
-                valueKey={item.valueKey}
-                detail={item.detail}
+                key={INDEX_ITEMS[2].key}
+                title={INDEX_ITEMS[2].title}
+                summary={indexSummaries[INDEX_ITEMS[2].key]}
+                valueKey={INDEX_ITEMS[2].valueKey}
+                detail={INDEX_ITEMS[2].detail}
               />
-            ))}
+            </div>
+            <div className="battle-team-swap-summary__index-row">
+              {INDEX_ITEMS.slice(3).map((item) => (
+                <CompactIndexCard
+                  key={item.key}
+                  title={item.title}
+                  summary={indexSummaries[item.key]}
+                  valueKey={item.valueKey}
+                  detail={item.detail}
+                />
+              ))}
+            </div>
           </div>
         </article>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import BattleTeamSwapSummaryPanel from "./BattleTeamSwapSummaryPanel";
 import { MAX_BATTLE_TEAM_SIZE } from "../lib/battleTeams";
 import { getPokemonRecordByName } from "../lib/data";
 import { getEntryDisplayName, getEntryTypeText } from "../lib/pokemonEntryDisplay";
@@ -98,6 +99,7 @@ export default function BattleTeamReorderView({
   const teamSlots = buildTeamSlots(currentPokemonIds).map((pokemonId) =>
     pokemonId ? validEntryById.get(pokemonId) ?? null : null,
   );
+  const currentEntries = teamSlots.filter(Boolean);
   const currentPokemonIdSet = new Set(currentPokemonIds);
   const reserveEntries = savedPokemon
     .filter((entry) => !currentPokemonIdSet.has(entry.id))
@@ -187,6 +189,8 @@ export default function BattleTeamReorderView({
           {team ? <span>{currentPokemonIds.length} / {MAX_BATTLE_TEAM_SIZE}</span> : null}
         </div>
       </header>
+
+      {team ? <BattleTeamSwapSummaryPanel entries={currentEntries} /> : null}
 
       <section className="panel panel--soft battle-team-swap">
         <div className="section-heading">

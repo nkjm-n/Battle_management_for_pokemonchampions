@@ -1,151 +1,5 @@
-import { itemList, getPokemonRecordByName } from "../lib/data";
-import { buildActualStats, getAttackStatKeyForMove } from "../lib/pokemonDamage";
 import { getEntryDisplayName } from "../lib/pokemonEntryDisplay";
-
-const itemByName = new Map(itemList.map((item) => [item.name, item]));
-
-function normalizeEffectText(value) {
-  return String(value ?? "").replace(/[ 　]+/g, " ").trim();
-}
-
-function getResolvedActualStats(entry) {
-  if (
-    entry?.actualStats &&
-    ["hp", "attack", "defense", "specialAttack", "specialDefense", "speed"].every((key) =>
-      Number.isFinite(entry.actualStats[key]),
-    )
-  ) {
-    return entry.actualStats;
-  }
-
-  const pokemon = getPokemonRecordByName(entry?.pokemonName);
-  if (!pokemon) {
-    return null;
-  }
-
-  return buildActualStats(pokemon, entry?.spValues ?? {}, entry?.natureName ?? "まじめ");
-}
-
-function getFirepowerItemMultiplier(itemName, move, attackStatKey) {
-  if (!itemName || !move || !attackStatKey) {
-    return 1;
-  }
-
-  const effectText = normalizeEffectText(itemByName.get(itemName)?.effect);
-
-  if (itemName === "こだわりハチマキ" && attackStatKey === "attack") {
-    return 1.5;
-  }
-
-  if (itemName === "こだわりメガネ" && attackStatKey === "specialAttack") {
-    return 1.5;
-  }
-
-  if (itemName === "いのちのたま") {
-    return 1.3;
-  }
-
-  if (itemName === "ちからのハチマキ" && attackStatKey === "attack") {
-    return 1.1;
-  }
-
-  if (itemName === "ものしりメガネ" && attackStatKey === "specialAttack") {
-    return 1.1;
-  }
-
-  if (!effectText) {
-    return 1;
-  }
-
-  const typeBoostMatch =
-    effectText.match(/([^\s]+)タイプの わざの いりょくが あがる/) ??
-    effectText.match(/([^\s]+)の タイプの ジュエル/);
-
-  if (typeBoostMatch?.[1] && move.type === typeBoostMatch[1]) {
-    return effectText.includes("いちどだけ") || effectText.includes("つよまる") ? 1.3 : 1.2;
-  }
-
-  return 1;
-}
-
-function buildFirepowerCandidate(entry, move) {
-  const attackStatKey = getAttackStatKeyForMove(move);
-  if (!attackStatKey || !Number.isFinite(move?.power)) {
-    return null;
-  }
-
-  const actualStats = getResolvedActualStats(entry);
-  const attackValue = actualStats?.[attackStatKey];
-  if (!Number.isFinite(attackValue)) {
-    return null;
-  }
-
-  const itemMultiplier = getFirepowerItemMultiplier(entry.itemName, move, attackStatKey);
-  return {
-    kind: attackStatKey === "attack" ? "physical" : "special",
-    entry,
-    move,
-    value: Math.round(attackValue * move.power * itemMultiplier),
-    itemMultiplier,
-  };
-}
-
-function buildDurabilityCandidate(entry) {
-  const actualStats = getResolvedActualStats(entry);
-  if (!actualStats) {
-    return null;
-  }
-
-  const hp = Number(actualStats.hp);
-  const defense = Number(actualStats.defense);
-  const specialDefense = Number(actualStats.specialDefense);
-
-  if (![hp, defense, specialDefense].every(Number.isFinite)) {
-    return null;
-  }
-
-  return {
-    entry,
-    actualStats,
-    physical: hp * defense,
-    special: hp * specialDefense,
-    total: Math.round((hp * defense * specialDefense) / (defense + specialDefense)),
-  };
-}
-
-function getHighestCandidate(candidates, valueKey) {
-  return candidates.reduce(
-    (best, candidate) => (candidate && candidate[valueKey] > (best?.[valueKey] ?? -Infinity) ? candidate : best),
-    null,
-  );
-}
-
-function getIndexSummaries(entries) {
-  const firepowerCandidates = entries.flatMap((entry) =>
-    (entry.moves ?? [])
-      .map((move) => (move ? buildFirepowerCandidate(entry, move) : null))
-      .filter(Boolean),
-  );
-  const durabilityCandidates = entries.map(buildDurabilityCandidate).filter(Boolean);
-
-  return {
-    physicalFirepower: getHighestCandidate(
-      firepowerCandidates.filter((candidate) => candidate.kind === "physical"),
-      "value",
-    ),
-    specialFirepower: getHighestCandidate(
-      firepowerCandidates.filter((candidate) => candidate.kind === "special"),
-      "value",
-    ),
-    totalDurability: getHighestCandidate(durabilityCandidates, "total"),
-    physicalDurability: getHighestCandidate(durabilityCandidates, "physical"),
-    specialDurability: getHighestCandidate(durabilityCandidates, "special"),
-  };
-}
-
-function formatIndexValue(value) {
-  return Number.isFinite(value) ? value.toLocaleString("ja-JP") : "—";
-}
+import { formatBattleTeamIndexValue, getBattleTeamIndexSummaries } from "../lib/battleTeamSummary";
 
 function FirepowerCard({ title, summary }) {
   return (
@@ -153,7 +7,7 @@ function FirepowerCard({ title, summary }) {
       <div className="battle-team-index-card__body">
         <div className="battle-team-index-card__metric">
           <p className="battle-team-index-card__title">{title}</p>
-          <strong className="battle-team-index-card__value">{formatIndexValue(summary?.value)}</strong>
+          <strong className="battle-team-index-card__value">{formatBattleTeamIndexValue(summary?.value)}</strong>
         </div>
 
         {summary ? (
@@ -179,7 +33,7 @@ function DurabilityCard({ title, summary, valueKey }) {
       <div className="battle-team-index-card__body">
         <div className="battle-team-index-card__metric">
           <p className="battle-team-index-card__title">{title}</p>
-          <strong className="battle-team-index-card__value">{formatIndexValue(summary?.[valueKey])}</strong>
+          <strong className="battle-team-index-card__value">{formatBattleTeamIndexValue(summary?.[valueKey])}</strong>
         </div>
 
         {summary ? (
@@ -198,7 +52,7 @@ function DurabilityCard({ title, summary, valueKey }) {
 }
 
 export default function BattleTeamIndexSection({ entries }) {
-  const summaries = getIndexSummaries(entries);
+  const summaries = getBattleTeamIndexSummaries(entries);
 
   return (
     <section className="panel panel--soft battle-team-index">

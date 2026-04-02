@@ -1,88 +1,10 @@
 import { getMoveTypeClassName } from "../lib/moveTypeClass";
-import { getEntryTypes } from "../lib/pokemonEntryDisplay";
-import { POKEMON_TYPE_NAMES, getAttackStatKeyForMove, getTypeEffectivenessMultiplier } from "../lib/pokemonDamage";
-
-const DISPLAY_TYPE_NAMES = POKEMON_TYPE_NAMES.filter((typeName) => typeName !== "ステラ" && typeName !== "不明");
-
-const MATCHUP_ROWS = [
-  { key: "super4", label: "抜群", detail: "×4" },
-  { key: "super2", label: "抜群", detail: "×2" },
-  { key: "normal", label: "通常", detail: "×1" },
-  { key: "resisted2", label: "いまいち", detail: "×1/2" },
-  { key: "resisted4", label: "いまいち", detail: "×1/4" },
-  { key: "none", label: "効果なし", detail: "×0" },
-];
-
-function createCountMap() {
-  return Object.fromEntries(MATCHUP_ROWS.map((row) => [row.key, 0]));
-}
-
-function getMatchupBucketKey(multiplier) {
-  if (multiplier === 4) {
-    return "super4";
-  }
-
-  if (multiplier === 2) {
-    return "super2";
-  }
-
-  if (multiplier === 0) {
-    return "none";
-  }
-
-  if (multiplier === 0.25) {
-    return "resisted4";
-  }
-
-  if (multiplier === 0.5) {
-    return "resisted2";
-  }
-
-  return "normal";
-}
-
-function buildOffensiveMatrix(entries) {
-  const attackingMoves = entries.flatMap((entry) =>
-    (entry.moves ?? []).filter((move) => move && getAttackStatKeyForMove(move)),
-  );
-
-  const countsByType = Object.fromEntries(
-    DISPLAY_TYPE_NAMES.map((typeName) => [typeName, createCountMap()]),
-  );
-
-  attackingMoves.forEach((move) => {
-    DISPLAY_TYPE_NAMES.forEach((typeName) => {
-      const multiplier = getTypeEffectivenessMultiplier(move.type, [typeName]);
-      const bucketKey = getMatchupBucketKey(multiplier);
-      countsByType[typeName][bucketKey] += 1;
-    });
-  });
-
-  return {
-    hasData: attackingMoves.length > 0,
-    countsByType,
-  };
-}
-
-function buildDefensiveMatrix(entries) {
-  const countsByType = Object.fromEntries(
-    DISPLAY_TYPE_NAMES.map((typeName) => [typeName, createCountMap()]),
-  );
-
-  entries.forEach((entry) => {
-    const defenderTypes = getEntryTypes(entry);
-    DISPLAY_TYPE_NAMES.forEach((typeName) => {
-      const multiplier = getTypeEffectivenessMultiplier(typeName, defenderTypes);
-      const bucketKey = getMatchupBucketKey(multiplier);
-      countsByType[typeName][bucketKey] += 1;
-    });
-  });
-
-  return {
-    hasData: entries.length > 0,
-    countsByType,
-  };
-}
+import {
+  BATTLE_TEAM_DISPLAY_TYPE_NAMES,
+  BATTLE_TEAM_MATCHUP_ROWS,
+  buildBattleTeamDefensiveMatrix,
+  buildBattleTeamOffensiveMatrix,
+} from "../lib/battleTeamSummary";
 
 function MatchupTable({ title, description, countsByType, emptyMessage }) {
   return (
@@ -100,7 +22,7 @@ function MatchupTable({ title, description, countsByType, emptyMessage }) {
                 <th className="battle-team-matchup-table__corner" scope="col">
                   分類
                 </th>
-                {DISPLAY_TYPE_NAMES.map((typeName) => (
+                {BATTLE_TEAM_DISPLAY_TYPE_NAMES.map((typeName) => (
                   <th key={typeName} className="battle-team-matchup-table__type-heading" scope="col">
                     <span className={`battle-team-matchup-type ${getMoveTypeClassName(typeName)}`.trim()}>
                       {typeName}
@@ -110,13 +32,13 @@ function MatchupTable({ title, description, countsByType, emptyMessage }) {
               </tr>
             </thead>
             <tbody>
-              {MATCHUP_ROWS.map((row) => (
+              {BATTLE_TEAM_MATCHUP_ROWS.map((row) => (
                 <tr key={row.key} className={`battle-team-matchup-table__row battle-team-matchup-table__row--${row.key}`}>
                   <th className="battle-team-matchup-table__row-heading" scope="row">
                     <strong>{row.label}</strong>
                     <span>{row.detail}</span>
                   </th>
-                  {DISPLAY_TYPE_NAMES.map((typeName) => (
+                  {BATTLE_TEAM_DISPLAY_TYPE_NAMES.map((typeName) => (
                     <td key={`${row.key}-${typeName}`} className="battle-team-matchup-table__count-cell">
                       <strong>{countsByType[typeName][row.key]}</strong>
                     </td>
@@ -134,8 +56,8 @@ function MatchupTable({ title, description, countsByType, emptyMessage }) {
 }
 
 export default function BattleTeamMatchupSection({ entries }) {
-  const offensiveMatchups = buildOffensiveMatrix(entries);
-  const defensiveMatchups = buildDefensiveMatrix(entries);
+  const offensiveMatchups = buildBattleTeamOffensiveMatrix(entries);
+  const defensiveMatchups = buildBattleTeamDefensiveMatrix(entries);
 
   return (
     <section className="panel panel--soft battle-team-matchup">

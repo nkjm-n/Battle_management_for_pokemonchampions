@@ -1,0 +1,233 @@
+:root {
+  color-scheme: light;
+  --seo-ink: #172233;
+  --seo-soft: #526173;
+  --seo-line: rgba(23, 34, 51, 0.1);
+  --seo-red: #df5b3d;
+  --seo-blue: #335ec9;
+  --seo-panel:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 249, 255, 0.92)),
+    radial-gradient(circle at top left, rgba(223, 91, 61, 0.08), transparent 32%),
+    radial-gradient(circle at top right, rgba(51, 94, 201, 0.08), transparent 36%);
+  --seo-shadow: 0 20px 48px rgba(15, 24, 40, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(223, 91, 61, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(51, 94, 201, 0.13), transparent 30%),
+    linear-gradient(180deg, #f4f8ff, #edf3ff 52%, #f7fbff);
+  color: var(--seo-ink);
+  font-family: "M PLUS Rounded 1c", "Zen Kaku Gothic New", sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.seo-shell {
+  width: min(1120px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 32px 0 56px;
+}
+
+.seo-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.seo-brand {
+  color: var(--seo-soft);
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.seo-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.seo-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 16px;
+  border: 1px solid rgba(23, 34, 51, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  color: var(--seo-ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.seo-hero,
+.seo-panel {
+  border: 1px solid var(--seo-line);
+  border-radius: 28px;
+  background: var(--seo-panel);
+  box-shadow: var(--seo-shadow);
+}
+
+.seo-hero {
+  display: grid;
+  gap: 22px;
+  padding: 34px;
+  margin-bottom: 18px;
+}
+
+.seo-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(51, 94, 201, 0.09);
+  border: 1px solid rgba(51, 94, 201, 0.15);
+  color: var(--seo-blue);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.seo-hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 1.08;
+}
+
+.seo-hero p {
+  margin: 0;
+  color: var(--seo-soft);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.seo-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.seo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.seo-button--primary {
+  background: linear-gradient(135deg, var(--seo-red), #ff8a65);
+  color: #fff;
+}
+
+.seo-button--secondary {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(23, 34, 51, 0.12);
+  color: var(--seo-ink);
+}
+
+.seo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.seo-card {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--seo-line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--seo-shadow);
+}
+
+.seo-card h2,
+.seo-card h3,
+.seo-panel h2,
+.seo-panel h3 {
+  margin: 0;
+}
+
+.seo-card p,
+.seo-panel p,
+.seo-panel li {
+  margin: 0;
+  color: var(--seo-soft);
+  line-height: 1.75;
+}
+
+.seo-card__link {
+  color: var(--seo-blue);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.seo-panel {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+  margin-bottom: 18px;
+}
+
+.seo-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.seo-list {
+  display: grid;
+  gap: 10px;
+  padding-left: 20px;
+}
+
+.seo-footer {
+  color: var(--seo-soft);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 980px) {
+  .seo-grid,
+  .seo-panel__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seo-shell {
+    width: min(100vw - 20px, 1120px);
+    padding: 20px 0 40px;
+  }
+
+  .seo-hero,
+  .seo-panel,
+  .seo-card {
+    padding: 20px;
+  }
+
+  .seo-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

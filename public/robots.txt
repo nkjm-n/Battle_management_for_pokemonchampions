@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nkjm-n.github.io/Battle_management_for_pokemonchampions/sitemap.xml

@@ -113,16 +113,37 @@ const homeCards = [
     id: "training",
     title: "育成開始",
     tone: "training",
+    href: "#/training",
   },
   {
     id: "trained",
     title: "育成済みポケモン",
     tone: "trained",
+    href: "#/trained",
   },
   {
     id: "teams",
     title: "バトルチーム",
     tone: "teams",
+    href: "#/teams",
+  },
+];
+
+const seoLandingLinks = [
+  {
+    href: "actual-stats-calculator/",
+    title: "ポケモンチャンピオンズ 実数値計算ツール",
+    copy: "性格、SP、持ち物をもとに実数値を確認したい人向けの紹介ページです。",
+  },
+  {
+    href: "damage-calculator/",
+    title: "ポケモンチャンピオンズ ダメージ計算ツール",
+    copy: "与ダメージ計算と被ダメージ計算の対応内容をまとめた紹介ページです。",
+  },
+  {
+    href: "party-matchup/",
+    title: "ポケモンチャンピオンズ バトルチーム管理ツール",
+    copy: "パーティ相性表、指数、チーム管理の使い方をまとめた紹介ページです。",
   },
 ];
 
@@ -584,7 +605,11 @@ export default function App() {
       <section className="hero">
         <div className="hero__main">
           <p className="hero__eyebrow">Battle Team Management for Pokemon Champions</p>
+          <h1>ポケモンチャンピオンズ向けバトルチーム管理・実数値計算・ダメージ計算</h1>
           <p className="hero__copy">
+            BTMPC は、ポケモンチャンピオンズ向けに実数値計算、ダメージ計算、育成済みポケモン保存、
+            バトルチーム管理、パーティ相性確認をまとめて行える Web アプリです。
+            <br />
             最終更新日：2026/3/31
             <br />
             未実装：新メガシンカポケモンの追加・PPの変更・新仕様の能力ランク
@@ -594,15 +619,44 @@ export default function App() {
 
       <section className="home-grid">
         {homeCards.map((card) => (
-          <button
+          <a
             key={card.id}
             className={`home-card home-card--${card.tone}`}
-            type="button"
-            onClick={() => (card.id === "training" ? openTrainingForCreate() : moveTo(card.id))}
+            href={card.href}
+            onClick={(event) => {
+              event.preventDefault();
+              if (card.id === "training") {
+                openTrainingForCreate();
+                return;
+              }
+
+              moveTo(card.id);
+            }}
           >
             <strong className="home-card__title">{card.title}</strong>
-          </button>
+          </a>
         ))}
+      </section>
+
+      <section className="home-seo-grid">
+        {seoLandingLinks.map((link) => (
+          <article key={link.href} className="home-seo-card">
+            <h2>{link.title}</h2>
+            <p>{link.copy}</p>
+            <a className="home-seo-card__link" href={link.href}>
+              紹介ページを見る
+            </a>
+          </article>
+        ))}
+      </section>
+
+      <section className="home-seo-panel">
+        <h2>BTMPC でできること</h2>
+        <p>
+          実数値計算ではポケモン名、性格、SP、持ち物、特性をもとに数値を確認できます。ダメージ計算では与ダメージ計算と被ダメージ計算の両方に対応し、
+          能力ランク、持ち物、特性、フィールド、急所、複数対象まで考慮できます。バトルチーム管理では、育成済みポケモンの保存、パーティ相性表の確認、
+          火力指数と耐久指数の比較、ドラッグによるポケモン入れ替えが可能です。
+        </p>
       </section>
     </main>
   );
